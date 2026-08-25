@@ -1,10 +1,10 @@
 services:
   - type: web
     name: dexterauth-backend
-    runtime: node
+    env: node
     rootDir: authlx-backend
-    buildCommand: npm ci
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node src/index.js
     healthCheckPath: /health
     autoDeploy: false
     envVars:
