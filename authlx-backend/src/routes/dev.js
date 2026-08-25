@@ -68,10 +68,142 @@ router.post("/auth/google", async (req, res, next) => {
   try {
     const { idToken } = req.body;
     if (!idToken) return fail(res, 400, "Missing Google token");
-    // Production: verify idToken with Google's tokeninfo / OAuth2 certs (google-auth-library).
-    return fail(res, 501, "Google sign-in requires Google OAuth configuration");
+    if (!config.google.clientId) return fail(res, 500, "Google OAuth not configured — set GOOGLE_CLIENT_ID on backend");
+    // Verify via Google tokeninfo (no extra dep)
+    const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+    if (!verifyRes.ok) return fail(res, 401, "Invalid Google token");
+    const payload = await verifyRes.json();
+    if (payload.aud !== config.google.clientId) return fail(res, 401, "Google token audience mismatch");
+    if (payload.exp && Number(payload.exp) < Math.floor(Date.now()/1000)) return fail(res, 401, "Google token expired");
+    const email = (payload.email || "").toLowerCase();
+    if (!email) return fail(res, 400, "Google token missing email");
+    // Allow unverified emails with warning (One Tap usually verified)
+    let r = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, password_hash, token_version FROM users WHERE LOWER(email)=LOWER($1)`, [email]);
+    let user;
+    if (r.rows.length === 0) {
+      // Create new user from Google profile
+      let baseUsername = (payload.name || email.split("@")[0]).replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20) || `user${Date.now()}`;
+      let username = baseUsername;
+      let suffix = 0;
+      while (true) {
+        const exists = await pool.query(`SELECT 1 FROM users WHERE LOWER(username)=LOWER($1)`, [username]);
+        if (exists.rows.length === 0) break;
+        suffix++; username = `${baseUsername}${suffix}`;
+        if (suffix > 100) username = `user_${Date.now()}`;
+      }
+      const newUser = {
+        id: rid("usr"),
+        username,
+        email,
+        password_hash: await bcrypt.hash(require("crypto").randomBytes(16).toString("hex"), 10),
+        display_name: payload.name || "",
+        avatar_url: payload.picture || "",
+      };
+      await pool.query(
+        `INSERT INTO users (id, username, email, password_hash, display_name, avatar_url, role, plan, is_verified) VALUES ($1,$2,$3,$4,$5,$6,'user','Free',true)`,
+        [newUser.id, newUser.username, newUser.email, newUser.password_hash, newUser.display_name, newUser.avatar_url]
+      );
+      const rr = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id=$1`, [newUser.id]);
+      user = rr.rows[0];
+    } else {
+      user = r.rows[0];
+      if (user.is_paused) return fail(res, 403, "Your account is paused. Contact support.");
+    }
+    const { token, jti } = signToken(user);
+    await pool.query(
+      `INSERT INTO user_sessions (id, user_id, jti, ip, user_agent, expires_at) VALUES ($1,$2,$3,$4,$5, now() + interval '7 days')`,
+      [rid("sess"), user.id, jti, clientIp(req), (req.headers["user-agent"]||"").slice(0,255)]
+    );
+    await pool.query(`UPDATE users SET last_login_at=now(), last_login_ip=$2 WHERE id=$1`, [user.id, clientIp(req)]);
+    const { password_hash, token_version, ...safeUser } = user;
+    return ok(res, { token, user: sanitizeUser(safeUser) });
   } catch (e) { next(e); }
 });
+
+// Discord OAuth callback (public) — handles both login and link flows
+// Discord redirects here with ?code=...&state=...
+router.get("/auth/discord/callback", async (req, res) => {
+  const { code, error, state } = req.query;
+  const frontend = config.frontendUrl.replace(/\/+$/, "");
+  if (error) return res.redirect(`${frontend}/login?discord_link=error&reason=${encodeURIComponent(error)}`);
+  if (!code) return res.redirect(`${frontend}/login?discord_link=error&reason=missing_code`);
+  if (!config.discord.clientId || !config.discord.clientSecret) {
+    return res.redirect(`${frontend}/login?discord_link=error&reason=discord_not_configured`);
+  }
+  try {
+    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: config.discord.clientId,
+        client_secret: config.discord.clientSecret,
+        grant_type: "authorization_code",
+        code: String(code),
+        redirect_uri: config.discord.redirectUri,
+      }),
+    });
+    if (!tokenRes.ok) {
+      const txt = await tokenRes.text();
+      console.error("[discord] token exchange failed:", tokenRes.status, txt);
+      return res.redirect(`${frontend}/login?discord_link=error&reason=token_exchange_failed`);
+    }
+    const tokenData = await tokenRes.json();
+    const userRes = await fetch("https://discord.com/api/users/@me", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    if (!userRes.ok) return res.redirect(`${frontend}/login?discord_link=error&reason=user_fetch_failed`);
+    const discordUser = await userRes.json();
+    const discordId = discordUser.id;
+    const discordUsername = `${discordUser.username}#${discordUser.discriminator || "0"}`;
+    const discordEmail = (discordUser.email || "").toLowerCase();
+    // Check if discord already linked to any user
+    const linked = await pool.query(`SELECT user_id FROM discord_links WHERE discord_id=$1`, [discordId]);
+    let user;
+    if (linked.rows.length > 0) {
+      const ur = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id=$1`, [linked.rows[0].user_id]);
+      if (ur.rows.length > 0) user = ur.rows[0];
+    }
+    // If not linked, try to match by email
+    if (!user && discordEmail) {
+      const byEmail = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE LOWER(email)=LOWER($1)`, [discordEmail]);
+      if (byEmail.rows.length > 0) {
+        user = byEmail.rows[0];
+        // Link it
+        await pool.query(
+          `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
+          [user.id, discordId, discordUsername]
+        );
+      }
+    }
+    if (!user) {
+      // No matching dashboard account — frontend shows "Please register first"
+      return res.redirect(`${frontend}/login?discord_link=error&reason=no_matching_account`);
+    }
+    if (user.is_paused) return res.redirect(`${frontend}/login?discord_link=error&reason=account_paused`);
+    // Ensure link exists/updated
+    await pool.query(
+      `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
+      [user.id, discordId, discordUsername]
+    );
+    const { token, jti } = signToken(user);
+    await pool.query(
+      `INSERT INTO user_sessions (id, user_id, jti, ip, user_agent, expires_at) VALUES ($1,$2,$3,$4,$5, now() + interval '7 days')`,
+      [rid("sess"), user.id, jti, clientIp(req), (req.headers["user-agent"]||"").slice(0,255)]
+    );
+    return res.redirect(`${frontend}/login?discord_token=${encodeURIComponent(token)}`);
+  } catch (e) {
+    console.error("[discord] callback error:", e.message);
+    return res.redirect(`${frontend}/login?discord_link=error&reason=exception`);
+  }
+});
+
+// Public Discord OAuth URLs (used from Login/Register without auth)
+router.get("/auth/discord/url", (req, res) =>
+  ok(res, { url: `https://discord.com/oauth2/authorize?client_id=${config.discord.clientId}&response_type=code&redirect_uri=${encodeURIComponent(config.discord.redirectUri)}&scope=identify%20email` })
+);
+router.get("/auth/discord/login-url", (req, res) =>
+  ok(res, { url: `https://discord.com/oauth2/authorize?client_id=${config.discord.clientId}&response_type=code&redirect_uri=${encodeURIComponent(config.discord.redirectUri)}&scope=identify%20email` })
+);
 
 router.post("/register/init", async (req, res, next) => {
   try {

@@ -72,4 +72,14 @@ module.exports = {
   seedDemo: bool(process.env.SEED_DEMO, true),
   trustProxy: bool(process.env.TRUST_PROXY, true),
   logLevel: process.env.LOG_LEVEL || "info",
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+  },
+  discord: {
+    clientId: process.env.DISCORD_CLIENT_ID || "",
+    clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
+    redirectUri: process.env.DISCORD_REDIRECT_URI || (process.env.PUBLIC_BASE_URL ? `${process.env.PUBLIC_BASE_URL.replace(/\/+$/,"")}/api/v1/dev/auth/discord/callback` : "http://localhost:3000/api/v1/dev/auth/discord/callback"),
+    botToken: process.env.DISCORD_BOT_TOKEN || "",
+  },
 };

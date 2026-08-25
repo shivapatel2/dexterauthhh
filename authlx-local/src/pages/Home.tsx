@@ -479,7 +479,7 @@ const tabCode: Record<TabKey, React.ReactNode> = {
         response <P>=</P> requests.<F>put</F><P>(</P>
       </L>
       <L n={5}>
-        {"    "}<S>"https://api.dexterauth.com/api/v1/dev/apps/{"{app_id}"}/status"</S><P>,</P>
+        {"    "}<S>"https://dexterauth.onrender.com/api/v1/dev/apps/{"{app_id}"}/status"</S><P>,</P>
       </L>
       <L n={6}>
         {"    "}headers<P>=</P><P>{"{"}</P><S>"Authorization"</S><P>: </P><S>"Bearer YOUR_DEV_TOKEN"</S><P>{"}"}</P><P>,</P>
