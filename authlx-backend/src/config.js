@@ -22,8 +22,8 @@ if (isProd) {
     process.env.JWT_SECRET = _autoJwtSecret;
   }
   if (!process.env.DATABASE_URL) {
-    console.warn("[config] WARN: DATABASE_URL not set - using fallback Neon URL from .env.production.example");
-    // fallback will be used from module.exports.databaseUrl
+    console.warn("[config] WARN: DATABASE_URL not set - using fallback Neon URL");
+    process.env.DATABASE_URL = "postgresql://neondb_owner:npg_W8jbMAHV3enY@ep-quiet-darkness-ax6tarom.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require";
   }
 }
 
