@@ -30,15 +30,23 @@ const allowAllCors = config.corsOrigins.includes("*");
 if (allowAllCors && config.isProd) {
   console.warn("[cors] WARNING: CORS_ORIGINS=* in production — set to your frontend domain(s) for security");
 }
+// Normalize origins (strip trailing slash) so https://x.vercel.app and https://x.vercel.app/ both match
+const normalizedOrigins = config.corsOrigins.map((o) => o.replace(/\/+$/, "").trim());
+console.log(`[cors] Origins: ${JSON.stringify(config.corsOrigins)} -> normalized: ${JSON.stringify(normalizedOrigins)} | allowAll=${allowAllCors}`);
 app.use(
   cors({
     origin: allowAllCors
       ? true
       : (origin, cb) => {
-          // Allow server-to-server / curl / health checks with no origin
           if (!origin) return cb(null, true);
-          if (config.corsOrigins.includes(origin)) return cb(null, true);
-          return cb(new Error(`CORS blocked for origin: ${origin}`));
+          const normOrigin = origin.replace(/\/+$/, "").trim();
+          // Also allow FRONTEND_URL and PUBLIC_BASE_URL automatically for convenience
+          const extraAllowed = [config.frontendUrl, config.publicBaseUrl].map((u) => (u || "").replace(/\/+$/, "").trim()).filter(Boolean);
+          const allAllowed = [...normalizedOrigins, ...extraAllowed];
+          if (allAllowed.includes(normOrigin)) return cb(null, true);
+          console.warn(`[cors] Blocked origin: ${origin} | allowed: ${JSON.stringify(allAllowed)}`);
+          // Don't throw — return false so cors still sends headers (browser will block but not as 500)
+          return cb(null, false);
         },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
