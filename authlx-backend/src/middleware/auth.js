@@ -1,6 +1,7 @@
 const pool = require("../db/pool");
 const { verifyToken } = require("../services/jwt");
 const { fail } = require("../utils/responses");
+const config = require("../config");
 
 const PUBLIC_USER_FIELDS = `
   id, username, email, display_name, avatar_url, banner_url, bio, badges,
@@ -19,6 +20,43 @@ const authCache = new Map(); // jti -> { user, sessionId, expires_at, ts }
 const AUTH_CACHE_TTL = 30000;
 
 async function requireAuth(req, res, next) {
+  // ── Discord Bot auth (x-discord-id + x-discord-secret) ───────────────
+  // The self-hosted Discord bot authenticates with the dashboard's
+  // bot_secret (dex_...) rather than a JWT. If those headers are present
+  // we verify them against discord_links and attach req.user directly.
+  const discordId = req.headers["x-discord-id"] || req.headers["x-discord_id"];
+  const discordSecret = req.headers["x-discord-secret"] || req.headers["x-discord_secret"];
+  const botToken = req.headers["x-bot-token"] || req.headers["x-bot_token"];
+  if (discordId && discordSecret) {
+    // Optional extra check: if DISCORD_BOT_TOKEN is configured, enforce it
+    if (config.discord.botToken && botToken && botToken !== config.discord.botToken) {
+      return fail(res, 401, "Invalid bot token");
+    }
+    try {
+      const link = await pool.query(
+        `SELECT * FROM discord_links WHERE discord_id = $1 AND bot_secret = $2`,
+        [String(discordId), String(discordSecret)]
+      );
+      if (link.rows.length === 0) {
+        return fail(res, 401, "Invalid Discord credentials. Make sure you have linked your Discord account under the dashboard Profile settings first.");
+      }
+      const userRes = await pool.query(
+        `SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id = $1`,
+        [link.rows[0].user_id]
+      );
+      if (userRes.rows.length === 0) return fail(res, 401, "Account not found");
+      const u = userRes.rows[0];
+      if (u.is_paused) return fail(res, 403, "Your account is paused. Contact support.");
+      req.user = u;
+      req.discordLink = link.rows[0];
+      // No sessionId for bot auth — some routes don't need it
+      return next();
+    } catch (e) {
+      console.error("[auth] discord bot auth error:", e.message);
+      return fail(res, 500, "Discord authentication failed");
+    }
+  }
+
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return fail(res, 401, "Authentication required");

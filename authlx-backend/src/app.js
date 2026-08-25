@@ -50,7 +50,7 @@ app.use(
         },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-discord-id", "x-discord-secret", "x-bot-token", "x-app-id", "x-appid"],
   })
 );
 // Capture raw body for any webhook route (needed for HMAC verification)
