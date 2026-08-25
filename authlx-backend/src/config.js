@@ -11,9 +11,9 @@ const isProd = (process.env.NODE_ENV || "development") === "production";
 // Then set it in Render Dashboard -> Environment for persistence across restarts.
 let _autoJwtSecret = null;
 if (isProd) {
-  const weakSecrets = ["change-me", "local-dev", "please", ""];
+  const weakSecrets = ["change-me", "local-dev", "please"];
   const jwtSecret = process.env.JWT_SECRET || "";
-  const isWeak = !jwtSecret || jwtSecret.length < 16 || weakSecrets.some((w) => jwtSecret.toLowerCase().includes(w));
+  const isWeak = !jwtSecret || jwtSecret.length < 32 || weakSecrets.some((w) => jwtSecret.toLowerCase().includes(w));
   if (isWeak) {
     _autoJwtSecret = require("crypto").randomBytes(48).toString("hex");
     console.warn(
