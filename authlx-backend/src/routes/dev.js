@@ -296,6 +296,74 @@ router.post("/webhooks/razorpay", handleRazorpayWebhook);
 router.post("/payments/razorpay/webhook-standalone", handleRazorpayWebhook);
 
 // ---------------------------------------------------------------------------
+// Public platform routes (no auth — used by landing page before login)
+// ---------------------------------------------------------------------------
+router.get("/platform/public", async (req, res, next) => {
+  try {
+    const r = await pool.query(`SELECT value FROM platform_settings WHERE key = 'public'`);
+    let pub = {};
+    try { pub = r.rows[0] ? JSON.parse(r.rows[0].value) : {}; } catch {}
+    const gw = await pool.query(
+      `SELECT key, value FROM platform_settings WHERE key IN
+       ('stripe_enabled','stripe_maintenance','binance_enabled','binance_maintenance',
+        'binance_pay_id','binance_qr_code_url',
+        'upi_enabled','upi_maintenance','upi_id','upi_qr_code_url',
+        'razorpay_enabled','razorpay_maintenance')`
+    );
+    const truthy = (v) => v === "1" || v === "true" || v === true;
+    const map = {
+      stripe_enabled: "stripeEnabled",
+      stripe_maintenance: "stripeMaintenance",
+      binance_enabled: "binanceEnabled",
+      binance_maintenance: "binanceMaintenance",
+      binance_pay_id: "binancePayId",
+      binance_qr_code_url: "binanceQrCodeUrl",
+      upi_enabled: "upiEnabled",
+      upi_maintenance: "upiMaintenance",
+      upi_id: "upiId",
+      upi_qr_code_url: "upiQrCodeUrl",
+      razorpay_enabled: "razorpayEnabled",
+      razorpay_maintenance: "razorpayMaintenance",
+    };
+    for (const row of gw.rows) {
+      if (row.key.endsWith("_enabled") || row.key.endsWith("_maintenance")) pub[map[row.key]] = truthy(row.value);
+      else pub[map[row.key]] = row.value;
+    }
+    return ok(res, { ...pub, name: "AuthLX", version: "1.0.0" });
+  } catch (e) { next(e); }
+});
+router.get("/platform/stats", async (req, res, next) => {
+  try {
+    const r = await pool.query(`SELECT value FROM platform_settings WHERE key = 'stats'`);
+    let stats = {};
+    try { stats = r.rows[0] ? JSON.parse(r.rows[0].value) : {}; } catch {}
+    return ok(res, { stats });
+  } catch (e) { next(e); }
+});
+router.get("/changelog", async (req, res, next) => {
+  try {
+    const r = await pool.query(`SELECT id, version, title, content, date FROM changelog_entries ORDER BY date DESC LIMIT 50`);
+    return ok(res, { entries: r.rows });
+  } catch (e) { next(e); }
+});
+router.get("/health", async (req, res, next) => {
+  try {
+    const db = await pool.query("SELECT 1");
+    return res.json({
+      status: "success",
+      database: "connected",
+      api: "connected",
+      license_verification: "connected",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      dbOk: db.rows.length === 1,
+    });
+  } catch {
+    return res.json({ status: "error", database: "disconnected", api: "connected", license_verification: "unknown" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Authenticated routes below
 // ---------------------------------------------------------------------------
 router.use(requireAuth);
