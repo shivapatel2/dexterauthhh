@@ -399,7 +399,7 @@ namespace DexterAuth
             this.version = version;
             this.client_secret = secret;
             this.hash_to_check = string.IsNullOrEmpty(hashToCheck) ? Others.GetChecksum() : hashToCheck;
-            this.api_url = string.IsNullOrEmpty(apiUrl) ? "https://api.dexterauth.com/api/v2/client" : apiUrl;
+            this.api_url = string.IsNullOrEmpty(apiUrl) ? "https://dexterauth.onrender.com/api/v2/client" : apiUrl;
 
             // Configure TLS security protocol to standard modern levels (TLS 1.2 / TLS 1.3)
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | (SecurityProtocolType)12288; // 12288 = Tls13

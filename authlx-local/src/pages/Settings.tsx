@@ -735,10 +735,10 @@ export default function Settings({ appId, appName }: SettingsProps) {
                             <Input
                                 className="bg-card border-border focus-visible:ring-indigo-500 h-[40px] text-xs font-mono"
                                 value={settingsState.discordWebhookAvatar}
-                                placeholder="https://api.dexterauth.com/assets/images/logo.png"
+                                placeholder="https://dexterauth.onrender.com/assets/images/logo.png"
                                 onChange={(e) => setSettingsState(s => ({ ...s, discordWebhookAvatar: e.target.value }))}
                             />
-                            <p className="text-[11px] text-muted-foreground mt-1.5">Leave blank to use default Dexter Auth logo (https://api.dexterauth.com/assets/images/logo.png). Direct link to any PNG/JPG/GIF image.</p>
+                            <p className="text-[11px] text-muted-foreground mt-1.5">Leave blank to use default Dexter Auth logo (https://dexterauth.onrender.com/assets/images/logo.png). Direct link to any PNG/JPG/GIF image.</p>
                         </div>
                     </div>
 
@@ -758,7 +758,7 @@ export default function Settings({ appId, appName }: SettingsProps) {
                                         key={settingsState.discordWebhookAvatar || 'default-avatar'}
                                         src={
                                             !settingsState.discordWebhookAvatar || !settingsState.discordWebhookAvatar.trim()
-                                                ? 'https://api.dexterauth.com/assets/images/logo.png'
+                                                ? 'https://dexterauth.onrender.com/assets/images/logo.png'
                                                 : settingsState.discordWebhookAvatar.trim()
                                         }
                                         alt="Bot avatar"
@@ -767,8 +767,8 @@ export default function Settings({ appId, appName }: SettingsProps) {
                                             const imgEl = e.target as HTMLImageElement;
                                             if (imgEl.src.includes('logo.png')) {
                                                 imgEl.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-                                            } else if (imgEl.src !== 'https://api.dexterauth.com/assets/images/logo.png') {
-                                                imgEl.src = 'https://api.dexterauth.com/assets/images/logo.png';
+                                            } else if (imgEl.src !== 'https://dexterauth.onrender.com/assets/images/logo.png') {
+                                                imgEl.src = 'https://dexterauth.onrender.com/assets/images/logo.png';
                                             }
                                         }}
                                     />

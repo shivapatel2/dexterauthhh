@@ -1576,7 +1576,7 @@ export default function Dashboard() {
 );`}
 {selectedLang === "cpp" && `std::string name = skCrypt("${selectedAppDetails?.name || 'Loading'}").decrypt(); ${!isReseller ? `\nstd::string ownerid = skCrypt("${selectedAppDetails?.id || 'Loading'}").decrypt(); \nstd::string secret = skCrypt("${selectedAppDetails?.api_secret || 'Loading'}").decrypt();` : ''} 
 std::string version = skCrypt("${selectedAppDetails?.version || 'Loading'}").decrypt(); 
-std::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp || 'api.dexterauth.com'}/api/v2/client/").decrypt();`}
+std::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp || 'dexterauth.onrender.com'}/api/v2/client/").decrypt();`}
 {selectedLang === "py" && `dexterapp = api(
     name = "${selectedAppDetails?.name || 'Loading'}", ${!isReseller ? `\n    ownerid = "${selectedAppDetails?.id || 'Loading'}",\n    client_secret = "${selectedAppDetails?.api_secret || 'Loading'}",` : ''}
     version = "${selectedAppDetails?.version || 'Loading'}", 
@@ -1596,7 +1596,7 @@ std::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp 
                                                                         !isReseller ? `\n    ownerid: "${selectedAppDetails?.id || 'Loading...'}",\n    secret: "${selectedAppDetails?.api_secret || 'Loading...'}",` : ''
                                                                     }\n    version: "${selectedAppDetails?.version || 'Loading...'}"\n);`;
                                                                 } else if (selectedLang === "cpp") {
-                                                                    codeStr = `std::string name = skCrypt("${selectedAppDetails?.name || 'Loading'}").decrypt(); ${!isReseller ? `\nstd::string ownerid = skCrypt("${selectedAppDetails?.id || 'Loading'}").decrypt(); \nstd::string secret = skCrypt("${selectedAppDetails?.api_secret || 'Loading'}").decrypt();` : ''}\nstd::string version = skCrypt("${selectedAppDetails?.version || 'Loading'}").decrypt();\nstd::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp || 'api.dexterauth.com'}/api/v2/client/").decrypt();`;
+                                                                    codeStr = `std::string name = skCrypt("${selectedAppDetails?.name || 'Loading'}").decrypt(); ${!isReseller ? `\nstd::string ownerid = skCrypt("${selectedAppDetails?.id || 'Loading'}").decrypt(); \nstd::string secret = skCrypt("${selectedAppDetails?.api_secret || 'Loading'}").decrypt();` : ''}\nstd::string version = skCrypt("${selectedAppDetails?.version || 'Loading'}").decrypt();\nstd::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp || 'dexterauth.onrender.com'}/api/v2/client/").decrypt();`;
                                                                 } else if (selectedLang === "py") {
                                                                     codeStr = `dexterapp = api(\n    name = "${selectedAppDetails?.name || 'Loading'}", ${!isReseller ? `\n    ownerid = "${selectedAppDetails?.id || 'Loading'}",\n    client_secret = "${selectedAppDetails?.api_secret || 'Loading'}",` : ''}\n    version = "${selectedAppDetails?.version || 'Loading'}",\n    hash_to_check = getchecksum()\n)`;
                                                                 } else if (selectedLang === "js") {

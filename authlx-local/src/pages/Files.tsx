@@ -40,7 +40,7 @@ export default function FilesView({ appId, appName, isPaused = false }: FilesPro
 
   const apiHost = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
     ? 'http://localhost:5000' 
-    : 'https://api.dexterauth.com';
+    : 'https://dexterauth.onrender.com';
   
   const cleanAppName = encodeURIComponent(appName || appId);
   const staticLatestDownloadUrl = `${apiHost}/api/v1/client/download/latest/${cleanAppName}`;

@@ -385,7 +385,7 @@ export default function Overview({ appId, appName, ownerId, version }: OverviewP
 std::string ownerid = skCrypt("${ownerId || "YOUR_OWNER_ID"}").decrypt();
 std::string secret = skCrypt("YOUR_APP_SECRET_HERE").decrypt();
 std::string version = skCrypt("${version || "1.0"}").decrypt();
-std::string url = skCrypt("https://${stats.cloudflareDomain || 'api.dexterauth.com'}/api/v2/client/").decrypt();`}
+std::string url = skCrypt("https://${stats.cloudflareDomain || 'dexterauth.onrender.com'}/api/v2/client/").decrypt();`}
                       </code>
                     </pre>
                   ) : selectedLang === 'python' ? (
@@ -398,7 +398,7 @@ app = api(
     ownerid       = "${ownerId || "YOUR_OWNER_ID"}",
     version       = "${version || "1.0"}",
     client_secret = "YOUR_APP_SECRET_HERE",
-    url           = "https://${stats.cloudflareDomain || 'api.dexterauth.com'}/api/v2/client/"
+    url           = "https://${stats.cloudflareDomain || 'dexterauth.onrender.com'}/api/v2/client/"
 )`}
                       </code>
                     </pre>
@@ -413,7 +413,7 @@ var api = new DexterApi(
     ownerId: "${ownerId || "YOUR_OWNER_ID"}",
     secret: "YOUR_APP_SECRET_HERE",
     version: "${version || "1.0"}",
-    url: "https://${stats.cloudflareDomain || 'api.dexterauth.com'}/api/v2/client/"
+    url: "https://${stats.cloudflareDomain || 'dexterauth.onrender.com'}/api/v2/client/"
 );
 if (await api.LoginAsync("username", "password")) {
     // authenticated

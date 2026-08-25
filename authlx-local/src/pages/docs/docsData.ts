@@ -367,7 +367,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Initialization',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/init',
+          url: 'https://dexterauth.onrender.com/api/v2/client/init',
           description: 'Initialize the application before making any other requests. Required to fetch the app status, update links, and verify the client secret.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -376,7 +376,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'secret', type: 'string', required: true, description: 'App secret', example: 'YOUR_SECRET' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/init \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "app_id": "YOUR_APP_ID",\n    "name": "MyApp",\n    "version": "1.0",\n    "secret": "YOUR_SECRET"\n  }\'' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/init \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "app_id": "YOUR_APP_ID",\n    "name": "MyApp",\n    "version": "1.0",\n    "secret": "YOUR_SECRET"\n  }\'' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -385,7 +385,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Register',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/register',
+          url: 'https://dexterauth.onrender.com/api/v2/client/register',
           description: 'Register a new user using a valid license key.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -396,7 +396,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'hwid', type: 'string', required: true, description: 'Hardware ID', example: 'HWID123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/register -d \'{"app_id":"...", "username":"...", "password":"...", "license_key":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/register -d \'{"app_id":"...", "username":"...", "password":"...", "license_key":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -405,7 +405,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Login (user/pass)',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/login',
+          url: 'https://dexterauth.onrender.com/api/v2/client/login',
           description: 'Login an existing user with username and password. Verifies HWID if bound.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -414,7 +414,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'hwid', type: 'string', required: false, description: 'Hardware ID of the user', example: 'HWID123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/login -d \'{"app_id":"...", "username":"...", "password":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/login -d \'{"app_id":"...", "username":"...", "password":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -423,7 +423,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Login (email/pass)',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/web-login',
+          url: 'https://dexterauth.onrender.com/api/v2/client/web-login',
           description: 'Login using email and password instead of username. Does not check HWID (Web flow).',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -431,7 +431,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'password', type: 'string', required: true, description: 'Password', example: 'pass123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/web-login -d \'{"app_id":"...", "username":"test@test.com", "password":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/web-login -d \'{"app_id":"...", "username":"test@test.com", "password":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -443,7 +443,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Upgrade Account',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/upgrade',
+          url: 'https://dexterauth.onrender.com/api/v2/client/upgrade',
           description: 'Upgrade an existing account using a new license key to extend time or upgrade tiers.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -451,7 +451,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'license_key', type: 'string', required: true, description: 'License key', example: 'XXXX-XXXX-XXXX' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/upgrade -d \'{"app_id":"...", "username":"...", "license_key":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/upgrade -d \'{"app_id":"...", "username":"...", "license_key":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -460,7 +460,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Change Username',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/change-username',
+          url: 'https://dexterauth.onrender.com/api/v2/client/change-username',
           description: 'Change the username of an existing account.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -468,7 +468,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'new_username', type: 'string', required: true, description: 'New username', example: 'new_user' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/change-username -d \'{"app_id":"...", "session_token":"...", "new_username":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/change-username -d \'{"app_id":"...", "session_token":"...", "new_username":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -477,7 +477,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Forgot Password',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/forgot',
+          url: 'https://dexterauth.onrender.com/api/v2/client/forgot',
           description: 'Reset a forgotten password. The request MUST be made from the hardware ID (HWID) currently bound to the account.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -486,7 +486,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'new_password', type: 'string', required: true, description: 'The new password', example: 'newpass' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/forgot -d \'{"app_id":"...", "username":"...", "hwid":"...", "new_password":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/forgot -d \'{"app_id":"...", "username":"...", "hwid":"...", "new_password":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -498,14 +498,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Verify Session',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/verify-session',
+          url: 'https://dexterauth.onrender.com/api/v2/client/verify-session',
           description: 'Verify if a session token is still valid and active.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'token', type: 'string', required: true, description: 'Session token to verify', example: 'TOKEN123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/verify-session -d \'{"app_id":"...", "token":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/verify-session -d \'{"app_id":"...", "token":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -514,14 +514,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Verify Standalone Token',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/verify-token',
+          url: 'https://dexterauth.onrender.com/api/v2/client/verify-token',
           description: 'Verify a standalone API token generated from the dashboard.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'token', type: 'string', required: true, description: 'The API token', example: 'TOKEN123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/verify-token -d \'{"app_id":"...", "token":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/verify-token -d \'{"app_id":"...", "token":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -530,14 +530,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Logout',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/logout',
+          url: 'https://dexterauth.onrender.com/api/v2/client/logout',
           description: 'Logout the user and destroy the active session token.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'session_token', type: 'string', required: true, description: 'Session token', example: 'TOKEN123' },
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/logout -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/logout -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -549,7 +549,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Retrieve Messages',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/chat/retrieve',
+          url: 'https://dexterauth.onrender.com/api/v2/client/chat/retrieve',
           description: 'Retrieve the latest messages from a specific global or application-bound chat channel.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -557,7 +557,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'channel', type: 'string', required: true, description: 'Channel name', example: 'general' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/chat/retrieve -d \'{"app_id":"...", "session_token":"...", "channel":"general"}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/chat/retrieve -d \'{"app_id":"...", "session_token":"...", "channel":"general"}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -566,7 +566,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Send Message',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/chat/send',
+          url: 'https://dexterauth.onrender.com/api/v2/client/chat/send',
           description: 'Send a new message to a chat channel.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -575,7 +575,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'message', type: 'string', required: true, description: 'The message content', example: 'Hello world' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/chat/send -d \'{"app_id":"...", "session_token":"...", "channel":"general", "message":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/chat/send -d \'{"app_id":"...", "session_token":"...", "channel":"general", "message":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         }
@@ -587,14 +587,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Get Global App Variables',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/vars/global',
+          url: 'https://dexterauth.onrender.com/api/v2/client/vars/global',
           description: 'Fetch secure global variables defined in your dashboard (e.g., offsets, update links, config).',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'session_token', type: 'string', required: true, description: 'Valid session token', example: 'TOKEN123' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/vars/global -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/vars/global -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -603,14 +603,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Get User Variables',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/vars/user/get',
+          url: 'https://dexterauth.onrender.com/api/v2/client/vars/user/get',
           description: 'Retrieve custom variable states stored specifically for this user (e.g., saved configs).',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'session_token', type: 'string', required: true, description: 'Valid session token', example: 'TOKEN123' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/vars/user/get -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/vars/user/get -d \'{"app_id":"...", "session_token":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -619,7 +619,7 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Set User Variables',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/vars/user/set',
+          url: 'https://dexterauth.onrender.com/api/v2/client/vars/user/set',
           description: 'Set custom variable states specifically for this user.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
@@ -627,7 +627,7 @@ The very first valid hash received by the server is automatically whitelisted.
             { name: 'variables', type: 'object', required: true, description: 'JSON dictionary of variables to save', example: '{"theme":"dark"}' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/vars/user/set -d \'{"app_id":"...", "session_token":"...", "variables":{"theme":"dark"}}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/vars/user/set -d \'{"app_id":"...", "session_token":"...", "variables":{"theme":"dark"}}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         }
@@ -639,14 +639,14 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Check Blacklist',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/util/check-blacklist',
+          url: 'https://dexterauth.onrender.com/api/v2/client/util/check-blacklist',
           description: 'Check if a specific HWID or IP address is globally blacklisted by the developer.',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' },
             { name: 'hwid', type: 'string', required: true, description: 'Hardware ID to check', example: 'HWID123' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/util/check-blacklist -d \'{"app_id":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/util/check-blacklist -d \'{"app_id":"...", "hwid":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         },
@@ -655,13 +655,13 @@ The very first valid hash received by the server is automatically whitelisted.
           title: 'Online Users',
           type: 'endpoint',
           method: 'POST',
-          url: 'https://api.dexterauth.com/api/v2/client/util/online-users',
+          url: 'https://dexterauth.onrender.com/api/v2/client/util/online-users',
           description: 'Retrieve the total number of currently online users (users with active sessions).',
           bodyParams: [
             { name: 'app_id', type: 'string', required: true, description: 'Your owner ID', example: 'YOUR_APP_ID' }
           ],
           codeSamples: [
-            { language: 'shell', code: 'curl -X POST https://api.dexterauth.com/api/v2/client/util/online-users -d \'{"app_id":"..."}\' -H "Content-Type: application/json"' }
+            { language: 'shell', code: 'curl -X POST https://dexterauth.onrender.com/api/v2/client/util/online-users -d \'{"app_id":"..."}\' -H "Content-Type: application/json"' }
           ],
           responses: COMMON_RESPONSES
         }
@@ -670,7 +670,7 @@ The very first valid hash received by the server is automatically whitelisted.
         id: "other-endpoints",
         title: "Full API Reference",
         type: "folder",
-        children: [{"id":"post-enable","title":"POST enable","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/2fa/enable","description":"Enables two-factor authentication for the user (requires `secret` and `code`).",responses: COMMON_RESPONSES},{"id":"post-disable","title":"POST disable","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/2fa/disable","description":"Disables two-factor authentication for the user.",responses: COMMON_RESPONSES},{"id":"post-stats","title":"POST stats","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/util/stats","description":"Retrieves application statistics.",responses: COMMON_RESPONSES},{"id":"post-log","title":"POST log","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/util/log","description":"Sends a client-side log string to the backend audit table.",responses: COMMON_RESPONSES},{"id":"post-webhook","title":"POST webhook","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/util/webhook","description":"Triggers a configured Discord webhook on behalf of the client.",responses: COMMON_RESPONSES},{"id":"post-ban","title":"POST ban","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v2/client/util/ban","description":"Self-ban endpoint (triggered by client-side anti-tamper or memory injection detection).",responses: COMMON_RESPONSES},{"id":"post-login","title":"POST login","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/login","description":"Authenticates a Developer or Manager (returns JWT).",responses: COMMON_RESPONSES},{"id":"post-init","title":"POST init","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/register/init","description":"Step 1: Submits email/username/password and sends a verification OTP to email.",responses: COMMON_RESPONSES},{"id":"post-verify","title":"POST verify","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/register/verify","description":"Step 2: Verifies the OTP and activates the Developer account.",responses: COMMON_RESPONSES},{"id":"post-forgot","title":"POST forgot","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/password/forgot","description":"Requests a password reset OTP.",responses: COMMON_RESPONSES},{"id":"post-reset","title":"POST reset","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/password/reset","description":"Verifies the OTP and resets the password.",responses: COMMON_RESPONSES},{"id":"post-logout","title":"POST logout","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/logout","description":"Revokes the JWT session.",responses: COMMON_RESPONSES},{"id":"get-me","title":"GET me","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/me","description":"Retrieves the logged-in dashboard user's profile and active permissions.",responses: COMMON_RESPONSES},{"id":"put-me","title":"PUT me","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/me","description":"Updates the dashboard user's profile (email, username, etc).",responses: COMMON_RESPONSES},{"id":"delete-profile","title":"DELETE profile","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/profile","description":"Deletes the dashboard user's account entirely.",responses: COMMON_RESPONSES},{"id":"get-health","title":"GET health","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/health","description":"Returns system health status.",responses: COMMON_RESPONSES},{"id":"get-public","title":"GET public","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/platform/public","description":"Retrieves public platform configuration (e.g., Discord link, registration paused status).",responses: COMMON_RESPONSES},{"id":"get-overview","title":"GET overview","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/overview","description":"Retrieves global dashboard statistics and charts.",responses: COMMON_RESPONSES},{"id":"get-notifications","title":"GET notifications","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/notifications","description":"Retrieves team notifications and invitations.",responses: COMMON_RESPONSES},{"id":"get-team","title":"GET team","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/team","description":"Retrieve all team members (Managers and Resellers).",responses: COMMON_RESPONSES},{"id":"post-team","title":"POST team","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/team","description":"Create a new team member directly.",responses: COMMON_RESPONSES},{"id":"put-team-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/team/:id","description":"Update a team member's role or permissions.",responses: COMMON_RESPONSES},{"id":"delete-team-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/team/:id","description":"Delete a team member.",responses: COMMON_RESPONSES},{"id":"post-invite","title":"POST invite","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/team/invite","description":"Invite an existing dashboard user to the team.",responses: COMMON_RESPONSES},{"id":"post-respond","title":"POST respond","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/team/invite/respond","description":"Accept or reject a team invitation.",responses: COMMON_RESPONSES},{"id":"post-leave","title":"POST leave","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/team/leave","description":"Leave a team.",responses: COMMON_RESPONSES},{"id":"get-apps","title":"GET apps","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/apps","description":"Retrieve all applications owned/accessible by the user.",responses: COMMON_RESPONSES},{"id":"post-apps","title":"POST apps","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps","description":"Create a new application.",responses: COMMON_RESPONSES},{"id":"get-apps-id","title":"GET :id","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/apps/:id","description":"Retrieve specific application details.",responses: COMMON_RESPONSES},{"id":"put-apps-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/apps/:id","description":"Update application settings (status, hwid lock, etc).",responses: COMMON_RESPONSES},{"id":"delete-apps-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:id","description":"Delete an application completely.",responses: COMMON_RESPONSES},{"id":"get-chat","title":"GET chat","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/chat","description":"Retrieve all chat messages sent in the app.",responses: COMMON_RESPONSES},{"id":"post-chat","title":"POST chat","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/chat","description":"Send an admin chat message.",responses: COMMON_RESPONSES},{"id":"get-hashes","title":"GET hashes","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/hashes","description":"Retrieve Anti-Tamper whitelisted hashes.",responses: COMMON_RESPONSES},{"id":"post-hashes","title":"POST hashes","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/hashes","description":"Add a new whitelisted hash.",responses: COMMON_RESPONSES},{"id":"delete-hashes-hashId","title":"DELETE :hashId","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/hashes/:hashId","description":"Delete a specific hash.",responses: COMMON_RESPONSES},{"id":"delete-hashes","title":"DELETE hashes","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:id/hashes","description":"Reset all hashes for the app.",responses: COMMON_RESPONSES},{"id":"get-licenses","title":"GET licenses","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/licenses","description":"Retrieve all licenses (requires `?appId=`).",responses: COMMON_RESPONSES},{"id":"post-generate","title":"POST generate","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/licenses/generate","description":"Generate a batch of license keys.",responses: COMMON_RESPONSES},{"id":"put-licenses-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/licenses/:id","description":"Update a license's status (ban/pause).",responses: COMMON_RESPONSES},{"id":"delete-licenses-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/licenses/:id","description":"Delete a license key entirely.",responses: COMMON_RESPONSES},{"id":"post-add-time","title":"POST add-time","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/licenses/add-time","description":"Add bonus time to unused licenses.",responses: COMMON_RESPONSES},{"id":"delete-unused","title":"DELETE unused","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/licenses/unused","description":"Delete all unused licenses.",responses: COMMON_RESPONSES},{"id":"delete-used","title":"DELETE used","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/licenses/used","description":"Delete all used licenses.",responses: COMMON_RESPONSES},{"id":"get-users","title":"GET users","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/users","description":"Retrieve all end-users (requires `?appId=`).",responses: COMMON_RESPONSES},{"id":"post-users","title":"POST users","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/users","description":"Manually create an end-user account.",responses: COMMON_RESPONSES},{"id":"put-users-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/users/:id","description":"Update user status/details.",responses: COMMON_RESPONSES},{"id":"delete-users-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/users/:id","description":"Delete an end-user.",responses: COMMON_RESPONSES},{"id":"post-reset-hwid","title":"POST reset-hwid","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/users/:userId/reset-hwid","description":"Reset HWID for a specific user.",responses: COMMON_RESPONSES},{"id":"post-reset-hwids","title":"POST reset-hwids","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/reset-hwids","description":"Reset HWIDs for all users in the app.",responses: COMMON_RESPONSES},{"id":"post-bulk-time","title":"POST bulk-time","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/bulk-time","description":"Add time to all users.",responses: COMMON_RESPONSES},{"id":"post-subtract-time","title":"POST subtract-time","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/subtract-time","description":"Subtract time from all users.",responses: COMMON_RESPONSES},{"id":"post-import","title":"POST import","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/import","description":"Import users from CSV/JSON.",responses: COMMON_RESPONSES},{"id":"delete-all","title":"DELETE all","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/all","description":"Delete all users.",responses: COMMON_RESPONSES},{"id":"delete-expired","title":"DELETE expired","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/apps/:appId/users/expired","description":"Delete all expired users.",responses: COMMON_RESPONSES},{"id":"get-subscriptions","title":"GET subscriptions","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/subscriptions","description":"Retrieve subscription tiers.",responses: COMMON_RESPONSES},{"id":"post-subscriptions","title":"POST subscriptions","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/subscriptions","description":"Create a new subscription tier.",responses: COMMON_RESPONSES},{"id":"put-subscriptions-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/subscriptions/:id","description":"Update a subscription tier.",responses: COMMON_RESPONSES},{"id":"delete-subscriptions-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/subscriptions/:id","description":"Delete a subscription tier.",responses: COMMON_RESPONSES},{"id":"get-tokens","title":"GET tokens","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/tokens","description":"Retrieve standalone access tokens.",responses: COMMON_RESPONSES},{"id":"post-tokens","title":"POST tokens","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/dev/tokens","description":"Generate standalone access tokens.",responses: COMMON_RESPONSES},{"id":"put-tokens-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://api.dexterauth.com/api/v1/dev/tokens/:id","description":"Update token status.",responses: COMMON_RESPONSES},{"id":"delete-tokens-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/tokens/:id","description":"Delete token.",responses: COMMON_RESPONSES},{"id":"get-sessions","title":"GET sessions","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/dev/sessions","description":"Retrieve active client sessions.",responses: COMMON_RESPONSES},{"id":"delete-sessions-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://api.dexterauth.com/api/v1/dev/sessions/:id","description":"Kill a session forcefully.",responses: COMMON_RESPONSES},{"id":"get-lookup-app","title":"GET lookup-app","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/customer/lookup-app","description":"Fetches public app name via App ID for the login page.",responses: COMMON_RESPONSES},{"id":"post-login","title":"POST login","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/login","description":"Authenticate via username/password.",responses: COMMON_RESPONSES},{"id":"post-login-license","title":"POST login-license","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/login-license","description":"Authenticate strictly via license key (for license-only apps).",responses: COMMON_RESPONSES},{"id":"post-register","title":"POST register","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/register","description":"Register via license key + username + password.",responses: COMMON_RESPONSES},{"id":"post-upgrade","title":"POST upgrade","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/upgrade","description":"Redeem a license key to extend time on an existing account.",responses: COMMON_RESPONSES},{"id":"post-logout","title":"POST logout","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/logout","description":"Kill the customer's web session.",responses: COMMON_RESPONSES},{"id":"get-profile","title":"GET profile","type":"endpoint","method":"GET","url":"https://api.dexterauth.com/api/v1/customer/profile","description":"View account details, active subs, HWID lock status, and cooldown info.",responses: COMMON_RESPONSES},{"id":"post-update-credentials","title":"POST update-credentials","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/update-credentials","description":"Update username and password.",responses: COMMON_RESPONSES},{"id":"post-reset-hwid","title":"POST reset-hwid","type":"endpoint","method":"POST","url":"https://api.dexterauth.com/api/v1/customer/reset-hwid","description":"Self-service Hardware ID reset (enforces cooldown duration).",responses: COMMON_RESPONSES}]
+        children: [{"id":"post-enable","title":"POST enable","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/2fa/enable","description":"Enables two-factor authentication for the user (requires `secret` and `code`).",responses: COMMON_RESPONSES},{"id":"post-disable","title":"POST disable","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/2fa/disable","description":"Disables two-factor authentication for the user.",responses: COMMON_RESPONSES},{"id":"post-stats","title":"POST stats","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/util/stats","description":"Retrieves application statistics.",responses: COMMON_RESPONSES},{"id":"post-log","title":"POST log","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/util/log","description":"Sends a client-side log string to the backend audit table.",responses: COMMON_RESPONSES},{"id":"post-webhook","title":"POST webhook","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/util/webhook","description":"Triggers a configured Discord webhook on behalf of the client.",responses: COMMON_RESPONSES},{"id":"post-ban","title":"POST ban","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v2/client/util/ban","description":"Self-ban endpoint (triggered by client-side anti-tamper or memory injection detection).",responses: COMMON_RESPONSES},{"id":"post-login","title":"POST login","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/login","description":"Authenticates a Developer or Manager (returns JWT).",responses: COMMON_RESPONSES},{"id":"post-init","title":"POST init","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/register/init","description":"Step 1: Submits email/username/password and sends a verification OTP to email.",responses: COMMON_RESPONSES},{"id":"post-verify","title":"POST verify","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/register/verify","description":"Step 2: Verifies the OTP and activates the Developer account.",responses: COMMON_RESPONSES},{"id":"post-forgot","title":"POST forgot","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/password/forgot","description":"Requests a password reset OTP.",responses: COMMON_RESPONSES},{"id":"post-reset","title":"POST reset","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/password/reset","description":"Verifies the OTP and resets the password.",responses: COMMON_RESPONSES},{"id":"post-logout","title":"POST logout","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/logout","description":"Revokes the JWT session.",responses: COMMON_RESPONSES},{"id":"get-me","title":"GET me","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/me","description":"Retrieves the logged-in dashboard user's profile and active permissions.",responses: COMMON_RESPONSES},{"id":"put-me","title":"PUT me","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/me","description":"Updates the dashboard user's profile (email, username, etc).",responses: COMMON_RESPONSES},{"id":"delete-profile","title":"DELETE profile","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/profile","description":"Deletes the dashboard user's account entirely.",responses: COMMON_RESPONSES},{"id":"get-health","title":"GET health","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/health","description":"Returns system health status.",responses: COMMON_RESPONSES},{"id":"get-public","title":"GET public","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/platform/public","description":"Retrieves public platform configuration (e.g., Discord link, registration paused status).",responses: COMMON_RESPONSES},{"id":"get-overview","title":"GET overview","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/overview","description":"Retrieves global dashboard statistics and charts.",responses: COMMON_RESPONSES},{"id":"get-notifications","title":"GET notifications","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/notifications","description":"Retrieves team notifications and invitations.",responses: COMMON_RESPONSES},{"id":"get-team","title":"GET team","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/team","description":"Retrieve all team members (Managers and Resellers).",responses: COMMON_RESPONSES},{"id":"post-team","title":"POST team","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/team","description":"Create a new team member directly.",responses: COMMON_RESPONSES},{"id":"put-team-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/team/:id","description":"Update a team member's role or permissions.",responses: COMMON_RESPONSES},{"id":"delete-team-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/team/:id","description":"Delete a team member.",responses: COMMON_RESPONSES},{"id":"post-invite","title":"POST invite","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/team/invite","description":"Invite an existing dashboard user to the team.",responses: COMMON_RESPONSES},{"id":"post-respond","title":"POST respond","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/team/invite/respond","description":"Accept or reject a team invitation.",responses: COMMON_RESPONSES},{"id":"post-leave","title":"POST leave","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/team/leave","description":"Leave a team.",responses: COMMON_RESPONSES},{"id":"get-apps","title":"GET apps","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/apps","description":"Retrieve all applications owned/accessible by the user.",responses: COMMON_RESPONSES},{"id":"post-apps","title":"POST apps","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps","description":"Create a new application.",responses: COMMON_RESPONSES},{"id":"get-apps-id","title":"GET :id","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id","description":"Retrieve specific application details.",responses: COMMON_RESPONSES},{"id":"put-apps-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id","description":"Update application settings (status, hwid lock, etc).",responses: COMMON_RESPONSES},{"id":"delete-apps-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id","description":"Delete an application completely.",responses: COMMON_RESPONSES},{"id":"get-chat","title":"GET chat","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/chat","description":"Retrieve all chat messages sent in the app.",responses: COMMON_RESPONSES},{"id":"post-chat","title":"POST chat","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/chat","description":"Send an admin chat message.",responses: COMMON_RESPONSES},{"id":"get-hashes","title":"GET hashes","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/hashes","description":"Retrieve Anti-Tamper whitelisted hashes.",responses: COMMON_RESPONSES},{"id":"post-hashes","title":"POST hashes","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/hashes","description":"Add a new whitelisted hash.",responses: COMMON_RESPONSES},{"id":"delete-hashes-hashId","title":"DELETE :hashId","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/hashes/:hashId","description":"Delete a specific hash.",responses: COMMON_RESPONSES},{"id":"delete-hashes","title":"DELETE hashes","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:id/hashes","description":"Reset all hashes for the app.",responses: COMMON_RESPONSES},{"id":"get-licenses","title":"GET licenses","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/licenses","description":"Retrieve all licenses (requires `?appId=`).",responses: COMMON_RESPONSES},{"id":"post-generate","title":"POST generate","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/licenses/generate","description":"Generate a batch of license keys.",responses: COMMON_RESPONSES},{"id":"put-licenses-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/licenses/:id","description":"Update a license's status (ban/pause).",responses: COMMON_RESPONSES},{"id":"delete-licenses-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/licenses/:id","description":"Delete a license key entirely.",responses: COMMON_RESPONSES},{"id":"post-add-time","title":"POST add-time","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/licenses/add-time","description":"Add bonus time to unused licenses.",responses: COMMON_RESPONSES},{"id":"delete-unused","title":"DELETE unused","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/licenses/unused","description":"Delete all unused licenses.",responses: COMMON_RESPONSES},{"id":"delete-used","title":"DELETE used","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/licenses/used","description":"Delete all used licenses.",responses: COMMON_RESPONSES},{"id":"get-users","title":"GET users","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/users","description":"Retrieve all end-users (requires `?appId=`).",responses: COMMON_RESPONSES},{"id":"post-users","title":"POST users","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/users","description":"Manually create an end-user account.",responses: COMMON_RESPONSES},{"id":"put-users-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/users/:id","description":"Update user status/details.",responses: COMMON_RESPONSES},{"id":"delete-users-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/users/:id","description":"Delete an end-user.",responses: COMMON_RESPONSES},{"id":"post-reset-hwid","title":"POST reset-hwid","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/users/:userId/reset-hwid","description":"Reset HWID for a specific user.",responses: COMMON_RESPONSES},{"id":"post-reset-hwids","title":"POST reset-hwids","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/reset-hwids","description":"Reset HWIDs for all users in the app.",responses: COMMON_RESPONSES},{"id":"post-bulk-time","title":"POST bulk-time","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/bulk-time","description":"Add time to all users.",responses: COMMON_RESPONSES},{"id":"post-subtract-time","title":"POST subtract-time","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/subtract-time","description":"Subtract time from all users.",responses: COMMON_RESPONSES},{"id":"post-import","title":"POST import","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/import","description":"Import users from CSV/JSON.",responses: COMMON_RESPONSES},{"id":"delete-all","title":"DELETE all","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/all","description":"Delete all users.",responses: COMMON_RESPONSES},{"id":"delete-expired","title":"DELETE expired","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/apps/:appId/users/expired","description":"Delete all expired users.",responses: COMMON_RESPONSES},{"id":"get-subscriptions","title":"GET subscriptions","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/subscriptions","description":"Retrieve subscription tiers.",responses: COMMON_RESPONSES},{"id":"post-subscriptions","title":"POST subscriptions","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/subscriptions","description":"Create a new subscription tier.",responses: COMMON_RESPONSES},{"id":"put-subscriptions-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/subscriptions/:id","description":"Update a subscription tier.",responses: COMMON_RESPONSES},{"id":"delete-subscriptions-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/subscriptions/:id","description":"Delete a subscription tier.",responses: COMMON_RESPONSES},{"id":"get-tokens","title":"GET tokens","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/tokens","description":"Retrieve standalone access tokens.",responses: COMMON_RESPONSES},{"id":"post-tokens","title":"POST tokens","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/dev/tokens","description":"Generate standalone access tokens.",responses: COMMON_RESPONSES},{"id":"put-tokens-id","title":"PUT :id","type":"endpoint","method":"PUT","url":"https://dexterauth.onrender.com/api/v1/dev/tokens/:id","description":"Update token status.",responses: COMMON_RESPONSES},{"id":"delete-tokens-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/tokens/:id","description":"Delete token.",responses: COMMON_RESPONSES},{"id":"get-sessions","title":"GET sessions","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/dev/sessions","description":"Retrieve active client sessions.",responses: COMMON_RESPONSES},{"id":"delete-sessions-id","title":"DELETE :id","type":"endpoint","method":"DELETE","url":"https://dexterauth.onrender.com/api/v1/dev/sessions/:id","description":"Kill a session forcefully.",responses: COMMON_RESPONSES},{"id":"get-lookup-app","title":"GET lookup-app","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/customer/lookup-app","description":"Fetches public app name via App ID for the login page.",responses: COMMON_RESPONSES},{"id":"post-login","title":"POST login","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/login","description":"Authenticate via username/password.",responses: COMMON_RESPONSES},{"id":"post-login-license","title":"POST login-license","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/login-license","description":"Authenticate strictly via license key (for license-only apps).",responses: COMMON_RESPONSES},{"id":"post-register","title":"POST register","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/register","description":"Register via license key + username + password.",responses: COMMON_RESPONSES},{"id":"post-upgrade","title":"POST upgrade","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/upgrade","description":"Redeem a license key to extend time on an existing account.",responses: COMMON_RESPONSES},{"id":"post-logout","title":"POST logout","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/logout","description":"Kill the customer's web session.",responses: COMMON_RESPONSES},{"id":"get-profile","title":"GET profile","type":"endpoint","method":"GET","url":"https://dexterauth.onrender.com/api/v1/customer/profile","description":"View account details, active subs, HWID lock status, and cooldown info.",responses: COMMON_RESPONSES},{"id":"post-update-credentials","title":"POST update-credentials","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/update-credentials","description":"Update username and password.",responses: COMMON_RESPONSES},{"id":"post-reset-hwid","title":"POST reset-hwid","type":"endpoint","method":"POST","url":"https://dexterauth.onrender.com/api/v1/customer/reset-hwid","description":"Self-service Hardware ID reset (enforces cooldown duration).",responses: COMMON_RESPONSES}]
       }
     ]
   }

@@ -383,7 +383,7 @@ router.get("/me", async (req, res, next) => {
     const { password_hash, token_version, ...safeUser } = req.user;
     return ok(res, {
       user: sanitizeUser(safeUser),
-      cloudflareDomain: pub.cloudflareDomain || "api.authlx.com",
+      cloudflareDomain: pub.cloudflareDomain || "dexterauth.onrender.com",
       nodeIp: process.env.NODE_IP || "127.0.0.1",
       contactEmail: pub.contactEmail || "support@authlx.local",
       discordInvite: pub.discord_invite || "",
@@ -983,7 +983,7 @@ router.get("/overview", loadApp, async (req, res, next) => {
       pool.query(`SELECT value FROM platform_settings WHERE key = 'public'`),
     ]);
     const s = stats.rows[0];
-    let cloudflareDomain = "api.authlx.com";
+    let cloudflareDomain = "dexterauth.onrender.com";
     try { cloudflareDomain = JSON.parse(pub.rows[0].value).cloudflareDomain || cloudflareDomain; } catch {}
 
     const data = {
