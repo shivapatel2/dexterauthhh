@@ -163,15 +163,20 @@ router.get("/auth/discord/callback", async (req, res) => {
       const ur = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id=$1`, [linked.rows[0].user_id]);
       if (ur.rows.length > 0) user = ur.rows[0];
     }
-    // If not linked, try to match by email
+    // Ensure bot_secret column exists
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS bot_secret TEXT`);
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS discord_avatar_url TEXT`);
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS discord_banner_url TEXT`);
+    // If not linked, try to match by email (case-insensitive, handles same email)
     if (!user && discordEmail) {
       const byEmail = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE LOWER(email)=LOWER($1)`, [discordEmail]);
       if (byEmail.rows.length > 0) {
         user = byEmail.rows[0];
-        // Link it
+        // Link it with bot_secret
+        const botSecret = `dex_${require("crypto").randomBytes(24).toString("hex")}`;
         await pool.query(
-          `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
-          [user.id, discordId, discordUsername]
+          `INSERT INTO discord_links (user_id, discord_id, discord_username, bot_secret, discord_avatar_url) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3, bot_secret=COALESCE(discord_links.bot_secret,$4), discord_avatar_url=$5`,
+          [user.id, discordId, discordUsername, botSecret, discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png` : ""]
         );
       }
     }
@@ -195,17 +200,29 @@ router.get("/auth/discord/callback", async (req, res) => {
       );
       const rr = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id=$1`, [newId]);
       user = rr.rows[0];
+      const newBotSecret = `dex_${require("crypto").randomBytes(24).toString("hex")}`;
       await pool.query(
-        `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
-        [user.id, discordId, discordUsername]
+        `INSERT INTO discord_links (user_id, discord_id, discord_username, bot_secret, discord_avatar_url) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3, discord_avatar_url=$5`,
+        [user.id, discordId, discordUsername, newBotSecret, discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png` : ""]
       );
     }
     if (user.is_paused) return res.redirect(`${frontend}/login?discord_link=error&reason=account_paused`);
-    // Ensure link exists/updated
-    await pool.query(
-      `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
-      [user.id, discordId, discordUsername]
-    );
+    // Ensure link exists/updated with avatar
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS bot_secret TEXT`);
+    const existingLink = await pool.query(`SELECT bot_secret FROM discord_links WHERE user_id=$1`, [user.id]);
+    let botSecretToUse = existingLink.rows[0]?.bot_secret;
+    if (!botSecretToUse) {
+      botSecretToUse = `dex_${require("crypto").randomBytes(24).toString("hex")}`;
+      await pool.query(
+        `INSERT INTO discord_links (user_id, discord_id, discord_username, bot_secret, discord_avatar_url) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3, bot_secret=COALESCE(discord_links.bot_secret,$4), discord_avatar_url=$5`,
+        [user.id, discordId, discordUsername, botSecretToUse, discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png` : ""]
+      );
+    } else {
+      await pool.query(
+        `UPDATE discord_links SET discord_id=$1, discord_username=$2, discord_avatar_url=$3 WHERE user_id=$4`,
+        [discordId, discordUsername, discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png` : "", user.id]
+      );
+    }
     const { token, jti } = signToken(user);
     await pool.query(
       `INSERT INTO user_sessions (id, user_id, jti, ip, user_agent, expires_at) VALUES ($1,$2,$3,$4,$5, now() + interval '7 days')`,
@@ -584,18 +601,21 @@ router.delete("/profile", async (req, res, next) => {
 // Discord
 // ---------------------------------------------------------------------------
 
-router.get("/auth/discord/url", (req, res) =>
-  ok(res, { url: `https://discord.com/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID || ""}&response_type=code&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI || "")}&scope=identify` })
-);
-router.get("/auth/discord/login-url", (req, res) =>
-  ok(res, { url: `https://discord.com/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID || ""}&response_type=code&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI || "")}&scope=identify` })
-);
-
 router.get("/auth/discord/profile", async (req, res, next) => {
   try {
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS bot_secret TEXT`);
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS discord_avatar_url TEXT`);
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS discord_banner_url TEXT`);
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS discord_id TEXT`);
     const r = await pool.query(`SELECT * FROM discord_links WHERE user_id = $1`, [req.user.id]);
-    if (r.rows.length === 0) return ok(res, { linked: false, discord_username: null });
-    return ok(res, { linked: true, discord_username: r.rows[0].discord_username });
+    if (r.rows.length === 0) return ok(res, { linked: false, profile: null, discord_username: null });
+    let row = r.rows[0];
+    if (!row.bot_secret) {
+      const secret = `dex_${require("crypto").randomBytes(24).toString("hex")}`;
+      await pool.query(`UPDATE discord_links SET bot_secret=$1 WHERE user_id=$2`, [secret, req.user.id]);
+      row.bot_secret = secret;
+    }
+    return ok(res, { linked: true, discord_username: row.discord_username, profile: row });
   } catch (e) { next(e); }
 });
 
