@@ -176,8 +176,29 @@ router.get("/auth/discord/callback", async (req, res) => {
       }
     }
     if (!user) {
-      // No matching dashboard account — frontend shows "Please register first"
-      return res.redirect(`${frontend}/login?discord_link=error&reason=no_matching_account`);
+      // Auto-create new dashboard account from Discord profile (no matching email)
+      if (!discordEmail) return res.redirect(`${frontend}/login?discord_link=error&reason=no_email_from_discord`);
+      let baseUsername = discordUser.username.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20) || `discord${discordId.slice(-4)}`;
+      let username = baseUsername;
+      let suffix = 0;
+      while (true) {
+        const exists = await pool.query(`SELECT 1 FROM users WHERE LOWER(username)=LOWER($1)`, [username]);
+        if (exists.rows.length === 0) break;
+        suffix++; username = `${baseUsername}${suffix}`;
+        if (suffix > 100) username = `discord_${Date.now()}`;
+      }
+      const newId = rid("usr");
+      const fakePass = await bcrypt.hash(require("crypto").randomBytes(16).toString("hex"), 10);
+      await pool.query(
+        `INSERT INTO users (id, username, email, password_hash, display_name, avatar_url, role, plan, is_verified) VALUES ($1,$2,$3,$4,$5,$6,'user','Free',true)`,
+        [newId, username, discordEmail, fakePass, discordUser.username || username, discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png` : ""]
+      );
+      const rr = await pool.query(`SELECT ${PUBLIC_USER_FIELDS}, token_version FROM users WHERE id=$1`, [newId]);
+      user = rr.rows[0];
+      await pool.query(
+        `INSERT INTO discord_links (user_id, discord_id, discord_username) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO UPDATE SET discord_id=$2, discord_username=$3`,
+        [user.id, discordId, discordUsername]
+      );
     }
     if (user.is_paused) return res.redirect(`${frontend}/login?discord_link=error&reason=account_paused`);
     // Ensure link exists/updated
