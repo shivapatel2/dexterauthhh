@@ -1613,7 +1613,7 @@ std::string url = skCrypt("https://${profile.cloudflareDomain || profile.nodeIp 
                                                             </Button>
                                                             <Button 
                                                                 onClick={() => {
-                                                                    if (selectedLang === 'py') window.open('https://github.com/Dexter Auth/DexterAuth-Python-Example', '_blank');
+                                                                    if (selectedLang === 'py') window.open('https://github.com/shivapatel2/DexterAuth', '_blank');
                                                                     else window.open('/docs#sdks', '_blank');
                                                                 }} 
                                                                 variant="secondary" 

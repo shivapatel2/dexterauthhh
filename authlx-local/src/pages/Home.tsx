@@ -252,7 +252,7 @@ const LIQUID_ETHER_COLORS = ["#5227FF", "#FF9FFC", "#B497CF"];
 
 const navLinks = [
   { label: "Docs", href: "/docs" },
-  { label: "SDKs", href: "https://github.com/Dexter Auth" },
+  { label: "SDKs", href: "https://github.com/shivapatel2/DexterAuth" },
   { label: "Pricing", href: "/pricing" },
   { label: "Changelog", href: "/changelog" },
 ];
@@ -392,7 +392,7 @@ const footerCols = [
     links: [
       { label: "Documentation", href: "/docs" },
       { label: "API Reference", href: "/docs" },
-      { label: "SDKs", href: "https://github.com/Dexter Auth" },
+      { label: "SDKs", href: "https://github.com/shivapatel2/DexterAuth" },
       { label: "Quickstart", href: "/docs" },
       { label: "Examples", href: "/docs" },
     ],

@@ -107,7 +107,7 @@ const Changelog: React.FC = () => {
           "name": "Dexter Auth API Changelog",
           "description": "Repository versioning records capturing recent API releases, SDK latency optimizations, and stack validation parameters.",
           "programmingLanguage": "C++, C#, TypeScript",
-          "codeRepository": "https://github.com/dexterauth/sdk"
+          "codeRepository": "https://github.com/shivapatel2/DexterAuth"
         }}
       />
       <div className="pointer-events-none fixed inset-0 -z-10 hidden md:block">
