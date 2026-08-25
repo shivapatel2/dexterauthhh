@@ -1,0 +1,33 @@
+services:
+  backend:
+    build: ./authlx-backend
+    container_name: authlx-backend
+    restart: unless-stopped
+    env_file:
+      - ./authlx-backend/.env.production
+    ports:
+      - "3000:3000"
+    volumes:
+      - backend_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)throw 1}).then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./authlx-local
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.yourdomain.com/api/v1}
+    container_name: authlx-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend_uploads:

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.production
+.env.local
+uploads/
+authlx-backend/uploads/
+authlx-local/dist/
+*.log
+.DS_Store
