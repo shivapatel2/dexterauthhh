@@ -617,6 +617,13 @@ router.get("/auth/discord/profile", async (req, res, next) => {
       await pool.query(`UPDATE discord_links SET bot_secret=$1 WHERE user_id=$2`, [secret, req.user.id]);
       row.bot_secret = secret;
     }
+    // Include the active-app name for bot clients (select-app stores the id).
+    if (row.selected_app_id) {
+      try {
+        const an = await pool.query(`SELECT name FROM apps WHERE id = $1`, [row.selected_app_id]);
+        if (an.rows.length > 0) row.selected_app_name = an.rows[0].name;
+      } catch { /* name is best-effort */ }
+    }
     return ok(res, { linked: true, discord_username: row.discord_username, profile: row });
   } catch (e) { next(e); }
 });
@@ -625,6 +632,33 @@ router.delete("/auth/discord/link", async (req, res, next) => {
   try {
     await pool.query(`DELETE FROM discord_links WHERE user_id = $1`, [req.user.id]);
     return ok(res, { message: "Discord unlinked" });
+  } catch (e) { next(e); }
+});
+
+// Bot: remember the user's active application (used by /app switch and every
+// command that falls back to the selected app). discord_links.selected_app_id
+// is the only store — nothing else in the codebase writes it.
+router.post("/auth/discord/select-app", async (req, res, next) => {
+  try {
+    await pool.query(`ALTER TABLE discord_links ADD COLUMN IF NOT EXISTS selected_app_id TEXT`);
+    const { appId } = req.body || {};
+    if (!appId) return fail(res, 400, "appId is required");
+    const a = await pool.query(`SELECT id, owner_id, name FROM apps WHERE id = $1`, [appId]);
+    if (a.rows.length === 0) return fail(res, 404, "Application not found");
+    const app = a.rows[0];
+    if (req.user.role !== "master_admin" && app.owner_id !== req.user.id) {
+      const member = await pool.query(
+        `SELECT 1 FROM team_members WHERE owner_id = $1 AND member_id = $2 AND status = 'active'`,
+        [app.owner_id, req.user.id]
+      );
+      if (member.rows.length === 0) return fail(res, 403, "You do not have access to this application");
+    }
+    await pool.query(
+      `INSERT INTO discord_links (user_id, selected_app_id) VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET selected_app_id = $2`,
+      [req.user.id, app.id]
+    );
+    return ok(res, { message: "Active application updated", selected_app_id: app.id, selected_app_name: app.name });
   } catch (e) { next(e); }
 });
 
