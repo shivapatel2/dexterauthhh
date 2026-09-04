@@ -7,6 +7,7 @@ const { sendOtp } = require("../services/mailer");
 const { audit } = require("../services/audit");
 const { rid } = require("../utils/helpers");
 const { clientIp } = require("../middleware/rateLimit");
+const { signBody } = require("../utils/srp");
 
 const router = express.Router();
 
@@ -35,13 +36,46 @@ function publicUser(row) {
   return safe;
 }
 
+// SRP: sign every /api/v2/client JSON response with the app's api_secret so the
+// DexterAuth C# SDK's strict X-Response-Sig check passes (like AuthForge parity).
+// Unsigned responses make SDKs with a configured secret self-terminate.
+router.use((req, res, next) => {
+  const origJson = res.json.bind(res);
+  res.json = (body) => {
+    (async () => {
+      try {
+        const app = await appByBody(req.body || {});
+        if (app && app.api_secret && body && typeof body === "object") {
+          const { sig, nonce } = signBody(app.api_secret, body);
+          res.set("X-Response-Sig", sig);
+          res.set("X-Response-Nonce", nonce);
+        }
+      } catch { /* never break the response path */ }
+      return origJson(body);
+    })();
+  };
+  next();
+});
+
+function subEntry(level, expDate) {
+  return {
+    subscription: level || "Default",
+    expiry: expDate ? Math.floor(new Date(expDate).getTime() / 1000).toString() : "",
+  };
+}
+
 router.post("/init", async (req, res, next) => {
   try {
     const app = await appByBody(req.body);
     if (!app) return fail(res, 404, "Application not found");
     if (!app.status) return fail(res, 403, "Application is paused");
     await audit({ appId: app.id, action: "sdk.init", ip: clientIp(req) });
-    return ok(res, { message: "Successfully initialized", app: { id: app.id, name: app.name, version: app.version } });
+    return ok(res, {
+      message: "Successfully initialized",
+      app: { id: app.id, name: app.name, version: app.version },
+      // app_info: legacy DexterAuth SDK shape (like AuthForge latest_version parity)
+      app_info: { name: app.name, version: app.version, hwid_method: "windows_user" },
+    });
   } catch (e) { next(e); }
 });
 
@@ -55,7 +89,8 @@ router.post("/login", async (req, res, next) => {
     if (app.version !== version && version) return fail(res, 403, "Application version mismatch. Please update your client.");
 
     const user = await pool.query(`SELECT * FROM app_users WHERE app_id = $1 AND (LOWER(username) = LOWER($2) OR LOWER(email) = LOWER($2))`, [app.id, username]);
-    if (user.rows.length === 0) return fail(res, 404, "Account not found");
+    // AuthForge parity: never reveal whether the username exists (no user enumeration).
+    if (user.rows.length === 0) return fail(res, 401, "Invalid credentials");
     const u = user.rows[0];
     if (!(await bcrypt.compare(password, u.password_hash))) return fail(res, 401, "Invalid credentials");
     if (u.is_banned) return fail(res, 403, "This account is banned");
@@ -83,7 +118,15 @@ router.post("/login", async (req, res, next) => {
     await pool.query(`UPDATE app_users SET last_login_at = now(), last_ip = $2 WHERE id = $1`, [u.id, clientIp(req)]);
     await audit({ appId: app.id, actorId: u.id, action: "sdk.login", ip: clientIp(req) });
     const fresh = (await pool.query(`SELECT * FROM app_users WHERE id = $1`, [u.id])).rows[0];
-    return ok(res, { token, session_token: token, user: publicUser(fresh) });
+    const freshExp = fresh.expiration_date ? new Date(fresh.expiration_date) : null;
+    return ok(res, {
+      token,
+      session_token: token,
+      // AuthForge parity fields (top-level expiry/plan + subscriptions array)
+      expires_at: freshExp ? freshExp.toISOString() : null,
+      plan: fresh.subscription_level || "Default",
+      user: { ...publicUser(fresh), subscriptions: [subEntry(fresh.subscription_level, fresh.expiration_date)] },
+    });
   } catch (e) { next(e); }
 });
 
@@ -122,7 +165,108 @@ router.post("/register", async (req, res, next) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7, now() + interval '7 days')`,
       [rid("sess"), app.id, userId, token, clientIp(req), (req.headers["user-agent"] || "").slice(0, 128), hwid || ""]
     );
-    return ok(res, { token, session_token: token, user: { id: userId, username, subscription_level: license.subscription_level || "Default" } });
+    return ok(res, {
+      token,
+      session_token: token,
+      message: "Registration successful",
+      expires_at: expires ? expires.toISOString() : null,
+      plan: license.subscription_level || "Default",
+      user: {
+        id: userId,
+        username,
+        email: email || "",
+        subscription_level: license.subscription_level || "Default",
+        hwid: hwid || "",
+        expiration_date: expires ? expires.toISOString() : null,
+        subscriptions: [subEntry(license.subscription_level, expires)],
+      },
+    });
+  } catch (e) { next(e); }
+});
+
+// License-key-only login (no username/password) — AuthForge parity.
+// First use activates the key (creates + binds the account), later uses log in.
+router.post("/license", async (req, res, next) => {
+  try {
+    const app = await appByBody(req.body);
+    if (!app) return fail(res, 404, "Application not found");
+    if (!app.status) return fail(res, 403, "Application is paused");
+    const { license_key, hwid, version } = req.body;
+    if (!license_key) return fail(res, 400, "license_key is required");
+    if (app.version !== version && version) return fail(res, 403, "Application version mismatch. Please update your client.");
+    const effHwid = hwid || "";
+
+    const lic = await pool.query(`SELECT * FROM licenses WHERE app_id = $1 AND key = $2`, [app.id, license_key]);
+    if (lic.rows.length === 0) return fail(res, 404, "Invalid license key");
+    const license = lic.rows[0];
+    if (license.is_banned || license.status === "banned") return fail(res, 403, "License key is banned");
+    if (license.status === "expired") return fail(res, 403, "License key has expired");
+
+    if (effHwid) {
+      const bl = await pool.query(`SELECT 1 FROM blacklist WHERE app_id = $1 AND hwid = $2`, [app.id, effHwid]);
+      if (bl.rows.length > 0) return fail(res, 403, "This device is blacklisted");
+    }
+
+    let user;
+    if (license.status === "unused") {
+      if (app.hwid_lock && !effHwid) return fail(res, 400, "hwid is required for this application");
+      const base = "user_" + String(license_key).replace(/-/g, "").slice(0, 12);
+      let username = base;
+      for (let i = 0; i < 5; i++) {
+        const exists = await pool.query(`SELECT 1 FROM app_users WHERE app_id = $1 AND LOWER(username) = LOWER($2)`, [app.id, username]);
+        if (exists.rows.length === 0) break;
+        username = base + Math.floor(Math.random() * 9000 + 1000);
+      }
+      const userId = rid("usr");
+      const expires = new Date(Date.now() + Number(license.expiry_duration || 2592000) * 1000);
+      await pool.query(
+        `INSERT INTO app_users (id, app_id, username, email, password_hash, subscription_level, hwid, hwid_affected, expiration_date)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [userId, app.id, username, "", await bcrypt.hash(generateSessionToken(), 10), license.subscription_level || "Default", effHwid, !!effHwid, expires]
+      );
+      await pool.query(`UPDATE licenses SET status = 'used', used_by = $2, used_on = $3, used_at = now() WHERE id = $1`, [license.id, userId, effHwid]);
+      await audit({ appId: app.id, actorId: userId, action: "sdk.license-activate", ip: clientIp(req) });
+      user = (await pool.query(`SELECT * FROM app_users WHERE id = $1`, [userId])).rows[0];
+    } else if (license.status === "used") {
+      const r = await pool.query(`SELECT * FROM app_users WHERE id = $1 AND app_id = $2`, [license.used_by, app.id]);
+      if (r.rows.length === 0) return fail(res, 404, "License is used but linked account not found");
+      user = r.rows[0];
+      if (user.is_banned) return fail(res, 403, "This account is banned");
+      if (user.expiration_date && new Date(user.expiration_date) < new Date()) {
+        await pool.query(`UPDATE app_users SET status = 'expired' WHERE id = $1`, [user.id]);
+        return fail(res, 403, "Your subscription has expired");
+      }
+      if (app.hwid_lock) {
+        if (!user.hwid) {
+          if (!effHwid) return fail(res, 400, "hwid is required for this application");
+          await pool.query(`UPDATE app_users SET hwid = $2, hwid_affected = true WHERE id = $1`, [user.id, effHwid]);
+          user.hwid = effHwid;
+        } else if (effHwid && user.hwid !== effHwid && user.additional_hwid !== effHwid) {
+          return fail(res, 403, "Account is bound to another device (HWID mismatch)");
+        }
+      }
+    } else {
+      return fail(res, 403, "License key is not available");
+    }
+
+    const token = generateSessionToken();
+    await pool.query(
+      `INSERT INTO sessions (id, app_id, user_id, token, ip, device, hwid, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, now() + interval '7 days')`,
+      [rid("sess"), app.id, user.id, token, clientIp(req), (req.headers["user-agent"] || "").slice(0, 128), user.hwid || effHwid || ""]
+    );
+    await pool.query(`UPDATE app_users SET last_login_at = now(), last_ip = $2 WHERE id = $1`, [user.id, clientIp(req)]);
+    await audit({ appId: app.id, actorId: user.id, action: "sdk.license-login", ip: clientIp(req) });
+    const fresh = (await pool.query(`SELECT * FROM app_users WHERE id = $1`, [user.id])).rows[0];
+    const freshExp = fresh.expiration_date ? new Date(fresh.expiration_date) : null;
+    return ok(res, {
+      token,
+      session_token: token,
+      message: "License activated successfully",
+      expires_at: freshExp ? freshExp.toISOString() : null,
+      plan: fresh.subscription_level || "Default",
+      user: { ...publicUser(fresh), subscriptions: [subEntry(fresh.subscription_level, fresh.expiration_date)] },
+    });
   } catch (e) { next(e); }
 });
 
@@ -155,9 +299,16 @@ router.post("/web-login", async (req, res, next) => {
     const { username, password } = req.body;
     if (!username || !password) return fail(res, 400, "username and password are required");
     const user = await pool.query(`SELECT * FROM app_users WHERE app_id = $1 AND LOWER(username) = LOWER($2)`, [app.id, username]);
-    if (user.rows.length === 0) return fail(res, 404, "Account not found");
+    // AuthForge parity: never reveal whether the username exists (no user enumeration).
+    if (user.rows.length === 0) return fail(res, 401, "Invalid credentials");
     if (!(await bcrypt.compare(password, user.rows[0].password_hash))) return fail(res, 401, "Invalid credentials");
-    return ok(res, { message: "Web login approved", user: publicUser(user.rows[0]) });
+    const wu = user.rows[0];
+    return ok(res, {
+      message: "Web login approved",
+      expires_at: wu.expiration_date ? new Date(wu.expiration_date).toISOString() : null,
+      plan: wu.subscription_level || "Default",
+      user: { ...publicUser(wu), subscriptions: [subEntry(wu.subscription_level, wu.expiration_date)] },
+    });
   } catch (e) { next(e); }
 });
 
@@ -173,7 +324,7 @@ router.post("/verify-session", async (req, res, next) => {
     if (user.rows.length === 0 || user.rows[0].is_banned) return fail(res, 401, "Session user unavailable");
     if (new Date(user.rows[0].expiration_date) < new Date()) return fail(res, 403, "Subscription expired");
     await pool.query(`UPDATE sessions SET last_seen = now() WHERE id = $1`, [sess.id]);
-    return ok(res, { valid: true, user: publicUser(user.rows[0]) });
+    return ok(res, { valid: true, is_valid: true, user: publicUser(user.rows[0]) });
   } catch (e) { next(e); }
 });
 

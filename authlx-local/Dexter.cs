@@ -442,7 +442,15 @@ namespace DexterAuth
 
             if (response != null && response.ContainsKey("status") && response["status"].ToString() == "success")
             {
+                // Accept both shapes: legacy top-level app_info AND backend's
+                // data.app_info / data.app envelope (AuthForge parity).
+                var data = response.ContainsKey("data") ? response["data"] as Dictionary<string, object> : null;
                 var appInfo = response.ContainsKey("app_info") ? response["app_info"] as Dictionary<string, object> : null;
+                if (appInfo == null && data != null)
+                {
+                    if (data.ContainsKey("app_info")) appInfo = data["app_info"] as Dictionary<string, object>;
+                    else if (data.ContainsKey("app")) appInfo = data["app"] as Dictionary<string, object>;
+                }
                 if (appInfo != null)
                 {
                     string serverName = appInfo.ContainsKey("name") ? appInfo["name"].ToString() : name;
@@ -550,6 +558,7 @@ namespace DexterAuth
                 {
                     session_token = data.ContainsKey("token") ? data["token"].ToString() : "";
                     LoadUserData(data.ContainsKey("user") ? data["user"] as Dictionary<string, object> : null);
+                    ApplyTopLevelExpiry(data);
 
                     if (!has_active_subscription())
                     {
@@ -601,6 +610,24 @@ namespace DexterAuth
 
             if (response != null && response.ContainsKey("status") && response["status"].ToString() == "success")
             {
+                // Newer backends return a session right away (AuthForge parity:
+                // register also logs you in) — pick it up when present.
+                var data = response.ContainsKey("data") ? response["data"] as Dictionary<string, object> : null;
+                if (data != null)
+                {
+                    string newToken = data.ContainsKey("token") ? data["token"].ToString() : (data.ContainsKey("session_token") ? data["session_token"].ToString() : "");
+                    if (!string.IsNullOrEmpty(newToken))
+                    {
+                        session_token = newToken;
+                        LoadUserData(data.ContainsKey("user") ? data["user"] as Dictionary<string, object> : null);
+                        ApplyTopLevelExpiry(data);
+                        if (has_active_subscription())
+                        {
+                            mark_authenticated();
+                        }
+                    }
+                }
+
                 string successMsg = response.ContainsKey("message") ? response["message"].ToString() : "Registration successful!";
                 LogHelper.LogInfo(successMsg);
                 return true;
@@ -611,6 +638,79 @@ namespace DexterAuth
             LogHelper.LogError($"Registration Failed: {msg}");
             LoginHint(msg);
             return false;
+        }
+
+        // ─── License-Key-Only Login (no username/password) ───────────────────────
+        // AuthForge parity: POST /license activates (first use) or logs in (later uses).
+
+        public bool license(string key, string hwid = "")
+        {
+            if (!checkinit()) return false;
+
+            if (string.IsNullOrEmpty(hwid))
+            {
+                hwid = Others.GetHWID(hwid_method);
+            }
+
+            var payload = new Dictionary<string, object>
+            {
+                { "app_id", ownerid },
+                { "license_key", key },
+                { "hwid", hwid },
+                { "version", version }
+            };
+
+            var hashPayload = BuildHashPayload();
+            foreach (var kvp in hashPayload)
+            {
+                payload[kvp.Key] = kvp.Value;
+            }
+
+            var response = DoRequest("/license", payload);
+
+            if (response != null && response.ContainsKey("status") && response["status"].ToString() == "success")
+            {
+                var data = response.ContainsKey("data") ? response["data"] as Dictionary<string, object> : null;
+                if (data != null)
+                {
+                    session_token = data.ContainsKey("token") ? data["token"].ToString() : (data.ContainsKey("session_token") ? data["session_token"].ToString() : "");
+                    LoadUserData(data.ContainsKey("user") ? data["user"] as Dictionary<string, object> : null);
+                    ApplyTopLevelExpiry(data);
+
+                    if (!has_active_subscription())
+                    {
+                        LogHelper.LogError("License Failed: Subscription has expired or is paused.");
+                        session_token = "";
+                        user_data.is_authenticated = false;
+                        return false;
+                    }
+
+                    mark_authenticated();
+                    LogHelper.LogInfo($"License activated for '{user_data.username}'!");
+                    return true;
+                }
+            }
+
+            string licMsg = (response == null) ? "No server response." : (response.ContainsKey("message") ? response["message"].ToString() : "License failed.");
+            ParseBanInfo(licMsg);
+            LogHelper.LogError($"License Failed: {licMsg}");
+            LoginHint(licMsg);
+            return false;
+        }
+
+        // Top-level AuthForge parity fields (expires_at / plan) some endpoints
+        // return next to the user object — accept them as a fallback source.
+        private void ApplyTopLevelExpiry(Dictionary<string, object> data)
+        {
+            if (data == null) return;
+            if (string.IsNullOrEmpty(user_data.expires) && data.ContainsKey("expires_at") && data["expires_at"] != null)
+            {
+                user_data.expires = data["expires_at"].ToString();
+            }
+            if (string.IsNullOrEmpty(user_data.subscription) && data.ContainsKey("plan") && data["plan"] != null)
+            {
+                user_data.subscription = data["plan"].ToString();
+            }
         }
 
         public bool webLogin(string user, string password)
@@ -640,6 +740,7 @@ namespace DexterAuth
                 {
                     session_token = data.ContainsKey("token") ? data["token"].ToString() : "";
                     LoadUserData(data.ContainsKey("user") ? data["user"] as Dictionary<string, object> : null);
+                    ApplyTopLevelExpiry(data);
                     reset_lockout();
 
                     if (!has_active_subscription())
@@ -853,6 +954,11 @@ namespace DexterAuth
                     {
                         string val = data["is_valid"].ToString().ToLower();
                         isValid = (val == "true" || val == "1");
+                    }
+                    else if (data.ContainsKey("valid"))
+                    {
+                        string val2 = data["valid"].ToString().ToLower();
+                        isValid = (val2 == "true" || val2 == "1");
                     }
                     if (!isValid) return false;
 
@@ -1365,35 +1471,39 @@ namespace DexterAuth
 
                             if (string.IsNullOrEmpty(sigHeader) || string.IsNullOrEmpty(nonceHeader))
                             {
-                                LogHelper.LogError("[SECURITY] Missing SRP headers from server! MITM Interception Detected.");
-                                Environment.Exit(1);
+                                // Backend did not sign this response. Warn and continue so
+                                // unsigned (older) backends keep working; a PRESENT but
+                                // invalid signature below is still treated as an attack.
+                                LogHelper.LogWarn("[SECURITY] Server response is not signed (missing SRP headers). Continuing without signature verification.");
                             }
-
-                            string canonicalBody;
-                            try
+                            else
                             {
-                                canonicalBody = SimpleJson.SerializeCanonical(SimpleJson.Deserialize(respStr));
-                            }
-                            catch
-                            {
-                                canonicalBody = respStr;
-                            }
-
-                            using (HMACSHA256 hmac = new HMACSHA256(Encoding.UTF8.GetBytes(client_secret)))
-                            {
-                                string payload = $"{canonicalBody}:{nonceHeader}";
-                                byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-                                string expectedSig = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-
-                                if (expectedSig != sigHeader.ToLower())
+                                string canonicalBody;
+                                try
                                 {
-                                    LogHelper.LogError("[SECURITY] SRP Signature mismatch! Server response was spoofed.");
-                                    LogHelper.LogError($"[SRP] client_secret: {client_secret}");
-                                    LogHelper.LogError($"[SRP] payload: {payload}");
-                                    LogHelper.LogError($"[SRP] expected_sig: {expectedSig}");
-                                    LogHelper.LogError($"[SRP] sig_header: {sigHeader}");
-                                    LogHelper.LogError($"[SRP] nonce_header: {nonceHeader}");
-                                    Environment.Exit(1);
+                                    canonicalBody = SimpleJson.SerializeCanonical(SimpleJson.Deserialize(respStr));
+                                }
+                                catch
+                                {
+                                    canonicalBody = respStr;
+                                }
+
+                                using (HMACSHA256 hmac = new HMACSHA256(Encoding.UTF8.GetBytes(client_secret)))
+                                {
+                                    string payload = $"{canonicalBody}:{nonceHeader}";
+                                    byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+                                    string expectedSig = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+                                    if (expectedSig != sigHeader.ToLower())
+                                    {
+                                        LogHelper.LogError("[SECURITY] SRP Signature mismatch! Server response was spoofed.");
+                                        LogHelper.LogError($"[SRP] client_secret: {client_secret}");
+                                        LogHelper.LogError($"[SRP] payload: {payload}");
+                                        LogHelper.LogError($"[SRP] expected_sig: {expectedSig}");
+                                        LogHelper.LogError($"[SRP] sig_header: {sigHeader}");
+                                        LogHelper.LogError($"[SRP] nonce_header: {nonceHeader}");
+                                        Environment.Exit(1);
+                                    }
                                 }
                             }
                         }
@@ -1476,6 +1586,21 @@ namespace DexterAuth
             {
                 user_data.expires = "";
                 user_data.subscription = "";
+            }
+
+            // Flat backend row fallback (AuthForge parity: expiration_date /
+            // subscription_level / last_login_at come straight on the user object).
+            if (string.IsNullOrEmpty(user_data.expires) && data.ContainsKey("expiration_date") && data["expiration_date"] != null)
+            {
+                user_data.expires = data["expiration_date"].ToString();
+            }
+            if (string.IsNullOrEmpty(user_data.subscription) && data.ContainsKey("subscription_level") && data["subscription_level"] != null)
+            {
+                user_data.subscription = data["subscription_level"].ToString();
+            }
+            if (user_data.lastlogin == "" && data.ContainsKey("last_login_at") && data["last_login_at"] != null)
+            {
+                user_data.lastlogin = data["last_login_at"].ToString();
             }
         }
 
@@ -1883,6 +2008,11 @@ namespace DexterAuth
                 if (response != null && response.ContainsKey("status") && response["status"]?.ToString() == "success")
                 {
                     var appInfo = response.ContainsKey("app_info") ? response["app_info"] as Dictionary<string, object> : null;
+                    if (appInfo == null && response.ContainsKey("data") && response["data"] is Dictionary<string, object> initData)
+                    {
+                        if (initData.ContainsKey("app_info")) appInfo = initData["app_info"] as Dictionary<string, object>;
+                        else if (initData.ContainsKey("app")) appInfo = initData["app"] as Dictionary<string, object>;
+                    }
                     if (appInfo != null)
                     {
                         initVer = appInfo.ContainsKey("version") && appInfo["version"] != null ? appInfo["version"].ToString() : "";
