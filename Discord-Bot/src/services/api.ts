@@ -166,7 +166,8 @@ export class ApiService {
 
   async createSubscription(appId: string, name: string, level: number) {
     try {
-      const res = await this.client.post('/subscriptions', { appId, subname: name, level });
+      // Backend expects `name` (not `subname`).
+      const res = await this.client.post('/subscriptions', { app_id: appId, name, level });
       return res.data.data.subscription;
     } catch (err) {
       throw new Error(this.handleError(err));

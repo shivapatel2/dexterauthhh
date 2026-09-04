@@ -1237,11 +1237,18 @@ router.get("/overview", loadApp, async (req, res, next) => {
 
 router.get("/users", loadApp, async (req, res, next) => {
   try {
+    const search = (req.query.search || "").toString().trim();
+    const params = [req.app.id];
+    let where = `u.app_id = $1`;
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND (u.username ILIKE $2 OR u.email ILIKE $2)`;
+    }
     const r = await pool.query(
       `SELECT u.*, (SELECT username FROM users d WHERE d.id = u.created_by) AS created_by_username,
               (SELECT count(*)::int FROM sessions s WHERE s.user_id = u.id) AS session_count
-       FROM app_users u WHERE u.app_id = $1 ORDER BY u.created_at DESC`,
-      [req.app.id]
+       FROM app_users u WHERE ${where} ORDER BY u.created_at DESC`,
+      params
     );
     return ok(res, { users: r.rows });
   } catch (e) { next(e); }
