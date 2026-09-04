@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const pool = require("../db/pool");
-const { requireAuth, requireRole, loadApp, PUBLIC_USER_FIELDS, sanitizeUser } = require("../middleware/auth");
+const { requireAuth, requireRole, loadApp, invalidateUserCache, PUBLIC_USER_FIELDS, sanitizeUser } = require("../middleware/auth");
 const { ok, fail } = require("../utils/responses");
 const { signToken } = require("../services/jwt");
 const { generateKeys, generateSessionToken, generateAppToken, generateAppSecret, generateOtp, hashOtp } = require("../services/licenses");
@@ -543,6 +543,7 @@ router.use(requireAuth);
 router.post("/logout", async (req, res, next) => {
   try {
     await pool.query(`DELETE FROM user_sessions WHERE id = $1`, [req.sessionId]);
+    invalidateUserCache(req.user.id);
     return ok(res, { message: "Logged out" });
   } catch (e) { next(e); }
 });
@@ -593,6 +594,7 @@ router.delete("/profile", async (req, res, next) => {
     const row = await pool.query(`SELECT password_hash FROM users WHERE id = $1`, [req.user.id]);
     if (!(await bcrypt.compare(password, row.rows[0].password_hash))) return fail(res, 401, "Incorrect password");
     await pool.query(`DELETE FROM users WHERE id = $1`, [req.user.id]);
+    invalidateUserCache(req.user.id);
     return ok(res, { message: "Account deleted" });
   } catch (e) { next(e); }
 });

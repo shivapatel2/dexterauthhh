@@ -19,6 +19,17 @@ function setAppCache(appId, app) { if (appId && app) appCache.set(appId, { app, 
 const authCache = new Map(); // jti -> { user, sessionId, expires_at, ts }
 const AUTH_CACHE_TTL = 30000;
 
+// Drop cached auth entries for a user so role/plan/pause/delete/logout
+// changes apply on their very next request instead of after AUTH_CACHE_TTL.
+function invalidateUserCache(userId) {
+  if (!userId) return;
+  for (const [jti, entry] of authCache) {
+    try {
+      if (entry && entry.user && entry.user.id === userId) authCache.delete(jti);
+    } catch { /* ignore */ }
+  }
+}
+
 async function requireAuth(req, res, next) {
   // ── Discord Bot auth (x-discord-id + x-discord-secret) ───────────────
   // The self-hosted Discord bot authenticates with the dashboard's
@@ -219,4 +230,4 @@ function sanitizeUser(user) {
   return u;
 }
 
-module.exports = { requireAuth, requireRole, requireAdmin, loadApp, invalidateAppCache, setAppCache, PUBLIC_USER_FIELDS, sanitizeUser };
+module.exports = { requireAuth, requireRole, requireAdmin, loadApp, invalidateAppCache, setAppCache, invalidateUserCache, PUBLIC_USER_FIELDS, sanitizeUser };

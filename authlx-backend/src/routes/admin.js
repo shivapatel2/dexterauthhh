@@ -1,6 +1,6 @@
 const express = require("express");
 const pool = require("../db/pool");
-const { requireAuth, requireAdmin, sanitizeUser } = require("../middleware/auth");
+const { requireAuth, requireAdmin, sanitizeUser, invalidateUserCache } = require("../middleware/auth");
 const { ok, fail } = require("../utils/responses");
 const { audit } = require("../services/audit");
 const { rid } = require("../utils/helpers");
@@ -90,6 +90,7 @@ router.post("/:id/pause", async (req, res, next) => {
     if (t.role === "master_admin") return fail(res, 403, "Cannot pause a master admin");
     await pool.query(`UPDATE users SET is_paused = true WHERE id = $1`, [t.id]);
     await pool.query(`DELETE FROM user_sessions WHERE user_id = $1`, [t.id]);
+    invalidateUserCache(t.id);
     await audit({ actorType: "admin", actorId: req.user.id, action: "user.paused", details: { targetId: t.id } });
     return ok(res, { message: `${t.username} paused` });
   } catch (e) { next(e); }
@@ -100,6 +101,7 @@ router.post("/:id/resume", async (req, res, next) => {
     const t = await getTarget(req, res);
     if (!t) return;
     await pool.query(`UPDATE users SET is_paused = false WHERE id = $1`, [t.id]);
+    invalidateUserCache(t.id);
     await audit({ actorType: "admin", actorId: req.user.id, action: "user.resumed", details: { targetId: t.id } });
     return ok(res, { message: `${t.username} resumed` });
   } catch (e) { next(e); }
@@ -112,12 +114,18 @@ router.put("/:id/role", async (req, res, next) => {
     if (t.role === "master_admin") return fail(res, 403, "Cannot modify a master admin");
     const { role, plan, badges, plan_expires_at } = req.body;
     if (!role || !["user", "manager", "reseller", "admin"].includes(role)) return fail(res, 400, "Invalid role");
+    // NOTE: role/plan/badge changes must NOT bump token_version — that would
+    // invalidate the user's live sessions and log them out (auth.js compares
+    // token_version on every request). Sessions re-read role/plan from the DB,
+    // so the new permissions apply immediately without re-login. Only password
+    // changes bump token_version (dev.js password reset).
     await pool.query(
       `UPDATE users SET role = $2, plan = COALESCE($3, plan), badges = COALESCE($4::jsonb, badges),
-                        plan_expires_at = COALESCE($5, plan_expires_at), token_version = token_version + 1
+                        plan_expires_at = COALESCE($5, plan_expires_at)
        WHERE id = $1`,
-      [t.id, role, plan || null, badges ? JSON.stringify(badges) : null, plan_expires_at ? new Date(plan_expires_at).getTime() : null]
+       [t.id, role, plan || null, badges ? JSON.stringify(badges) : null, plan_expires_at ? new Date(plan_expires_at).getTime() : null]
     );
+    invalidateUserCache(t.id);
     await audit({ actorType: "admin", actorId: req.user.id, action: "user.role.updated", details: { targetId: t.id, role, plan } });
     return ok(res, { message: `${t.username} updated to ${role}` });
   } catch (e) { next(e); }
@@ -129,6 +137,7 @@ router.delete("/:id/wipe", async (req, res, next) => {
     if (!t) return;
     if (t.role === "master_admin") return fail(res, 403, "Cannot wipe a master admin");
     await pool.query(`DELETE FROM users WHERE id = $1`, [t.id]);
+    invalidateUserCache(t.id);
     await audit({ actorType: "admin", actorId: req.user.id, action: "user.wiped", details: { targetId: t.id } });
     return ok(res, { message: `${t.username} wiped` });
   } catch (e) { next(e); }
