@@ -1251,13 +1251,18 @@ router.post("/users", loadApp, async (req, res, next) => {
   try {
     const b = req.body;
     if (!b.username) return fail(res, 400, "Username is required");
-    const expires = b.expiry ? nowSec() + parseInt(b.expiry, 10) : nowSec() + 2592000;
+    await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''`);
+    // Accept explicit status / expiry / notes (bot + dashboard send these).
+    // expiration_date (ISO) wins, else expiry (seconds from now), else 30 days.
+    const expires = b.expiration_date
+      ? Math.floor(new Date(b.expiration_date).getTime() / 1000)
+      : (b.expiry ? nowSec() + parseInt(b.expiry, 10) : nowSec() + 2592000);
     const id = rid("usr");
     await pool.query(
       `INSERT INTO app_users (id, app_id, username, email, password_hash, subscription_level,
-                              status, created_by, expiration_date, hwid, hwid_affected)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, to_timestamp($9), $10, $11)`,
-      [id, req.app.id, b.username, b.email || "", await bcrypt.hash(b.password || "changeme", 10), b.subscription_level || "Default", "active", req.user.id, expires, b.hwid || "", !!b.hwid]
+                              status, created_by, expiration_date, hwid, hwid_affected, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, to_timestamp($9), $10, $11, $12)`,
+      [id, req.app.id, b.username, b.email || "", await bcrypt.hash(b.password || "changeme", 10), b.subscription_level || "Default", b.status || "active", req.user.id, expires, b.hwid || "", !!b.hwid, b.notes || ""]
     );
     await audit({ actorType: "dev", actorId: req.user.id, action: "user.created", appId: req.app.id, details: { userId: id } });
     triggerAppWebhook(req.app, "user.created", { id, username: b.username, email: b.email || "", subscription_level: b.subscription_level || "Default", status: "active" }).catch(()=>{});
@@ -1280,6 +1285,7 @@ router.put("/users/:userId", loadApp, async (req, res, next) => {
     push("additional_hwid", b.additional_hwid);
     push("is_banned", parseBool(b.is_banned));
     push("ban_reason", b.ban_reason);
+    push("notes", b.notes);
     if (b.ban_expires !== undefined) push("ban_expires", b.ban_expires ? new Date(b.ban_expires) : null);
     if (b.expiration_date !== undefined) push("expiration_date", b.expiration_date ? new Date(b.expiration_date) : null);
     push("is_2fa_enabled", parseBool(b.is_2fa_enabled));
@@ -1419,8 +1425,16 @@ router.post("/licenses/generate", loadApp, async (req, res, next) => {
       capitalLetters,
       existing,
     });
-    const durationSec = duration > 0 ? duration : (parseInt(expiry, 10) > 0 ? parseInt(expiry, 10) * 86400 : 2592000);
-    const label = duration > 0 ? `${Math.round(duration / 86400)} Day(s)` : (expiry ? `${expiry} Month(s)` : "1 Month(s)");
+    // Contract: `expiry` is SECONDS (both dashboard + bot send seconds).
+    // `duration` is a legacy seconds fallback. Previously `duration > 0` won,
+    // but callers sent small ints (1..6) there, minting 1-second keys.
+    const durationSec = parseInt(expiry, 10) > 0 ? parseInt(expiry, 10) : (duration > 0 ? duration : 2592000);
+    const label = durationSec >= 315360000 ? "Lifetime"
+      : durationSec >= 31536000 ? `${Math.round(durationSec / 31536000)} Year(s)`
+      : durationSec >= 2592000 ? `${Math.round(durationSec / 2592000)} Month(s)`
+      : durationSec >= 604800 ? `${Math.round(durationSec / 604800)} Week(s)`
+      : durationSec >= 86400 ? `${Math.round(durationSec / 86400)} Day(s)`
+      : `${durationSec} Second(s)`;
     for (const key of keys) {
       await pool.query(
         `INSERT INTO licenses (id, app_id, key, status, created_by, note, duration, expiry_duration, subscription_level)

@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS app_users (
   password_hash     TEXT NOT NULL,
   status            TEXT NOT NULL DEFAULT 'active',        -- active | banned | expired
   subscription_level TEXT NOT NULL DEFAULT 'Default',
+  notes             TEXT DEFAULT '',
   hwid              TEXT DEFAULT '',
   hwid_affected     BOOLEAN NOT NULL DEFAULT false,
   additional_hwid   TEXT DEFAULT '',
