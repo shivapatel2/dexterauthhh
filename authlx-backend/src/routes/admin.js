@@ -119,9 +119,11 @@ router.put("/:id/role", async (req, res, next) => {
     // token_version on every request). Sessions re-read role/plan from the DB,
     // so the new permissions apply immediately without re-login. Only password
     // changes bump token_version (dev.js password reset).
+    // Explicit null clears the expiry (lifetime); an absent key keeps the old value.
+    const explicitExpiry = Object.prototype.hasOwnProperty.call(req.body, "plan_expires_at");
     await pool.query(
       `UPDATE users SET role = $2, plan = COALESCE($3, plan), badges = COALESCE($4::jsonb, badges),
-                        plan_expires_at = COALESCE($5, plan_expires_at)
+                        plan_expires_at = ${explicitExpiry ? "$5" : "COALESCE($5, plan_expires_at)"}
        WHERE id = $1`,
        [t.id, role, plan || null, badges ? JSON.stringify(badges) : null, plan_expires_at ? new Date(plan_expires_at).getTime() : null]
     );
