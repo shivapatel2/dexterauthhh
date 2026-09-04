@@ -328,6 +328,7 @@ export default function Dashboard() {
         email: "",
         role: "User",
         plan: "Free",
+        plan_expires_at: null as number | null,
         avatar_url: "",
         banner_url: "",
         bio: "",
@@ -612,6 +613,9 @@ export default function Dashboard() {
                     email: data.data.user.email,
                     role: rawRole === 'admin' ? 'Account Owner' : (rawRole === 'reseller' ? 'Reseller' : rawRole === 'manager' ? 'Manager' : 'User'),
                     plan: data.data.user.plan || "Free",
+                    // plan_expires_at was dropped here → every downstream view
+                    // (Profile, etc.) always rendered "Lifetime / Forever".
+                    plan_expires_at: data.data.user.plan_expires_at ?? null,
                     avatar_url: data.data.user.avatar_url || "",
                     banner_url: data.data.user.banner_url || "",
                     bio: data.data.user.bio || "",
