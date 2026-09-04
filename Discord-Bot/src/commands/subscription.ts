@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, okPanel, errPanel, f, code } from '../utils/embeds';
 
 export const subscriptionCommand = {
   data: new SlashCommandBuilder()
@@ -57,18 +58,17 @@ export const subscriptionCommand = {
           return interaction.editReply({ content: `${EMOJIS.INFO} No subscription plans found for **${appName}**.` });
         }
 
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.BALANCE} Subscription Plans — ${appName}`)
-          .setColor('#5865F2')
-          .setDescription(
-            subs.map((s: any, i: number) =>
-              `**${i + 1}.** \`${s.name || s.sub_name}\` — Level ${s.level || 1}`
-            ).join('\n')
-          )
-          .setFooter({ text: `Total: ${subs.length} plan(s)` })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.BALANCE,
+              `Subscription Plans — ${appName} (${subs.length})`,
+              subs.map((s: any, i: number) => `**${i + 1}.** ${code(s.name || s.sub_name)} — Level ${s.level || 1}`).join('\n'),
+              undefined,
+              `App: ${appName}`
+            ),
+          ],
+        });
       }
 
       // ─── CREATE ────────────────────────────────────────────────────────────
@@ -82,16 +82,14 @@ export const subscriptionCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SUCCESS} Subscription Plan Created`)
-              .setColor('#22c55e')
-              .addFields(
-                { name: `${EMOJIS.APP} Plan Name`, value: sub?.name || name, inline: true },
-                { name: '🎯 Level', value: `Level ${level}`, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true }
-              )
-              .setTimestamp()
-          ]
+            okPanel(
+              EMOJIS.SUCCESS,
+              'Subscription Plan Created',
+              undefined,
+              [f(`${EMOJIS.APP} Name`, code(sub?.name || name)), f('🎯 Level', `Level ${level}`), f(`${EMOJIS.TAG} App`, code(appName))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -113,15 +111,14 @@ export const subscriptionCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.TRASH} Subscription Plan Deleted`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: `${EMOJIS.APP} Plan Name`, value: match.name || name, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true }
-              )
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.TRASH,
+              'Subscription Plan Deleted',
+              undefined,
+              [f(`${EMOJIS.APP} Name`, code(match.name || name)), f(`${EMOJIS.TAG} App`, code(appName))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 

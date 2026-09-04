@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { db } from '../utils/db';
 import { ApiService } from '../services/api';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, errText, f, code } from '../utils/embeds';
 
 export const dashboardCommand = {
   data: new SlashCommandBuilder()
@@ -39,28 +40,32 @@ export const dashboardCommand = {
       const subsData = get(subs) as any[];
       const teamData = get(team) as any;
       const hashesRaw = get(hashes);
-      const hashesData = Array.isArray(hashesRaw) ? hashesRaw : [];
+      const hashesData: any[] = Array.isArray(hashesRaw) ? hashesRaw : [];
 
       const activeApp = appsData?.find((a: any) => a.id === appId);
-      const embed = new EmbedBuilder()
-        .setTitle(`📊 Dashboard — ${activeApp?.name || appId}`)
-        .setColor('#5865F2')
-        .setDescription(`Live data from \`https://dexterauth.onrender.com\` — all endpoints`)
-        .addFields(
-          { name: `${EMOJIS.STATS} Overview`, value: `Users: **${ov?.totalUsers ?? 0}** | Licenses: **${ov?.totalLicenses ?? 0}** (used ${ov?.usedLicenses ?? 0}) | Sessions: **${ov?.activeSessions ?? 0}** | Tokens: **${ov?.totalTokens ?? 0}** | Subs: **${ov?.totalSubscriptions ?? 0}** | Banned: **${ov?.bannedUsers ?? 0}**`, inline: false },
-          { name: `${EMOJIS.USER} Users (${usersData?.length ?? 0})`, value: usersData?.slice(0,5).map((u:any)=>`\`${u.username}\` — ${u.status} — ${u.subscription_level}`).join('\n') || 'No users', inline: false },
-          { name: `${EMOJIS.LICENSE} Licenses (${licensesData?.length ?? 0})`, value: licensesData?.slice(0,5).map((l:any)=>`\`${l.key.slice(0,12)}...\` — ${l.status}`).join('\n') || 'No licenses', inline: false },
-          { name: `${EMOJIS.SESSIONS} Sessions (${sessionsData?.length ?? 0})`, value: sessionsData?.slice(0,5).map((s:any)=>`\`${s.user_id.slice(0,8)}\` — ${s.ip || 'N/A'}`).join('\n') || 'No sessions', inline: false },
-          { name: `${EMOJIS.PLAN} Subscriptions (${subsData?.length ?? 0})`, value: subsData?.map((s:any)=>`${s.name} (lvl ${s.level})`).join(', ') || 'Default only', inline: false },
-          { name: `${EMOJIS.TEAM} Team`, value: JSON.stringify(teamData)?.slice(0, 800) || 'No team', inline: false },
-          { name: `${EMOJIS.SHIELD} Hashes (${hashesData?.length ?? 0})`, value: hashesData?.slice(0,3).map((h:any)=>h.hash_value.slice(0,30)).join('\n') || 'None', inline: false },
-        )
-        .setFooter({ text: `App: ${appId} | Backend: dexterauth.onrender.com | Use /app snapshot for details` })
-        .setTimestamp();
+      const teamCount = Array.isArray(teamData) ? teamData.length : (teamData ? 1 : 0);
 
-      return interaction.editReply({ embeds: [embed] });
-    } catch (e:any) {
-      return interaction.editReply({ content: `${EMOJIS.ERROR} ${e.message}` });
+      return interaction.editReply({
+        embeds: [
+          infoPanel(
+            EMOJIS.STATS,
+            `Dashboard — ${activeApp?.name || appId}`,
+            `Live data · \`https://dexterauth.onrender.com\` — all endpoints`,
+            [
+              f(`${EMOJIS.STATS} Overview`, `**${ov?.totalUsers ?? 0}** users · **${ov?.totalLicenses ?? 0}** licenses (${ov?.usedLicenses ?? 0} used) · **${ov?.activeSessions ?? 0}** sessions · **${ov?.totalTokens ?? 0}** tokens · **${ov?.totalSubscriptions ?? 0}** subs · **${ov?.bannedUsers ?? 0}** banned`, false),
+              f(`${EMOJIS.USER} Users (${usersData?.length ?? 0})`, usersData?.slice(0, 5).map((u: any) => `${code(u.username)} — ${u.status} — ${u.subscription_level}`).join('\n') || 'No users', false),
+              f(`${EMOJIS.LICENSE} Licenses (${licensesData?.length ?? 0})`, licensesData?.slice(0, 5).map((l: any) => `${code(String(l.key).slice(0, 12) + '…')} — ${l.status}`).join('\n') || 'No licenses', false),
+              f(`${EMOJIS.SESSIONS} Sessions (${sessionsData?.length ?? 0})`, sessionsData?.slice(0, 5).map((s: any) => `${code(String(s.user_id).slice(0, 8))} — ${s.ip || 'N/A'}`).join('\n') || 'No sessions', false),
+              f(`${EMOJIS.PLAN} Subscriptions (${subsData?.length ?? 0})`, subsData?.map((s: any) => `${s.name} (lvl ${s.level})`).join(', ') || 'Default only', false),
+              f(`${EMOJIS.TEAM} Team (${teamCount})`, typeof teamData === 'string' ? teamData : JSON.stringify(teamData)?.slice(0, 300) || 'No team', false),
+              f(`${EMOJIS.SHIELD} Hashes (${hashesData.length})`, hashesData.slice(0, 3).map((h: any) => code(String(h.hash_value).slice(0, 30))).join('\n') || 'None', false),
+            ],
+            `App: ${appId} · Use /app snapshot for details`
+          ),
+        ],
+      });
+    } catch (e: any) {
+      return interaction.editReply({ content: errText(e.message) });
     }
   }
 };

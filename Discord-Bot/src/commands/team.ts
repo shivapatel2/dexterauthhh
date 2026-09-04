@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, errText, f } from '../utils/embeds';
 
 export const teamCommand = {
   data: new SlashCommandBuilder()
@@ -60,33 +61,28 @@ export const teamCommand = {
         if (m.balance_month) parts.push(`${m.balance_month}×Month`);
         if (m.balance_year) parts.push(`${m.balance_year}×Year`);
         if (m.balance_lifetime) parts.push(`${m.balance_lifetime}×Lifetime`);
-        return parts.length > 0 ? parts.join(' | ') : 'No balance';
+        return parts.length > 0 ? parts.join(' · ') : 'No balance';
       };
 
-      const embed = new EmbedBuilder()
-        .setTitle(`${EMOJIS.TEAM} Team — ${appName}`)
-        .setColor('#5865F2')
-        .setDescription(
-          members.map((m: any) => {
-            const icon = roleIcon(m.role);
-            const roleLabel = (m.role || 'Member').charAt(0).toUpperCase() + (m.role || 'Member').slice(1);
-            const emailLine = m.email ? `${EMOJIS.EMAIL} ${m.email}` : '';
-            const balanceLine = m.role?.toLowerCase() === 'reseller' ? `${EMOJIS.BALANCE} Balance: ${formatBalance(m)}` : '';
-            const unlimitedLabel = m.is_unlimited_reseller ? ` ${EMOJIS.UNLIMITED} Unlimited` : '';
-            const permLines = m.role?.toLowerCase() === 'reseller' ? unlimitedLabel : '';
-
-            return [
-              `${icon} **${m.username || m.display_name || m.email || m.id}** — ${roleLabel}${permLines}`,
-              emailLine,
-              balanceLine,
-              m.is_owner ? '*(App Owner)*' : ''
-            ].filter(Boolean).join('\n');
-          }).join('\n\n')
-        )
-        .setFooter({ text: `Total: ${members.length} member(s) | View-Only via Discord Bot` })
-        .setTimestamp();
-
-      return interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({
+        embeds: [
+          infoPanel(
+            EMOJIS.TEAM,
+            `Team — ${appName} (${members.length})`,
+            undefined,
+            members.slice(0, 10).map((m: any) => {
+              const roleLabel = (m.role || 'Member').charAt(0).toUpperCase() + (m.role || 'Member').slice(1);
+              const extra = [
+                m.email ? `${EMOJIS.EMAIL} ${m.email}` : null,
+                m.role?.toLowerCase() === 'reseller' ? `${EMOJIS.BALANCE} ${formatBalance(m)}${m.is_unlimited_reseller ? ` ${EMOJIS.UNLIMITED}` : ''}` : null,
+                m.is_owner ? 'App Owner' : null,
+              ].filter(Boolean).join(' · ');
+              return f(`${roleIcon(m.role)} ${m.username || m.display_name || m.email || m.id} — ${roleLabel}`, extra || '—', false);
+            }),
+            'View-only via Discord Bot'
+          ),
+        ],
+      });
 
     } catch (err: any) {
       const msg = err.message || 'An unexpected error occurred.';

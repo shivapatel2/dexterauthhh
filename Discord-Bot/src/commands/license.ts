@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, okPanel, errPanel, f, code, fmtDate } from '../utils/embeds';
 
 export const licenseCommand = {
   data: new SlashCommandBuilder()
@@ -136,22 +137,19 @@ export const licenseCommand = {
         });
 
         const keys: string[] = res.keys || [];
-        const keysText = keys.map(k => `\`${k}\``).join('\n');
+        const keysText = keys.map(k => code(k)).join('\n');
 
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.LICENSE} Licenses Generated Successfully`)
-          .setColor('#22c55e')
-          .addFields(
-            { name: `${EMOJIS.TAG} Application`, value: `\`${appName}\``, inline: true },
-            { name: 'Amount', value: `${amount} key(s)`, inline: true },
-            { name: 'Level', value: `Level ${level}`, inline: true },
-            { name: 'Duration', value: getFriendlyDurationName(durationInput), inline: true }
-          )
-          .setDescription(`**Generated Keys:**\n${keysText.length > 3000 ? keysText.substring(0, 2900) + '\n*(truncated — additional keys saved to dashboard)*' : keysText}`)
-          .setFooter({ text: 'DexterAuth Bot • Copy keys above and share with your customers. Action logged to Discord Webhook.' })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            okPanel(
+              EMOJIS.LICENSE,
+              `Licenses Generated — ${amount} key(s)`,
+              keysText.length > 3000 ? keysText.substring(0, 2900) + '\n*(truncated — rest on dashboard)*' : keysText,
+              [f(`${EMOJIS.TAG} App`, code(appName)), f('Level', `Level ${level}`), f('Duration', getFriendlyDurationName(durationInput))],
+              'Copy keys above and share with your customers.'
+            ),
+          ],
+        });
       }
 
       // ─── LIST ──────────────────────────────────────────────────────────────
@@ -169,28 +167,23 @@ export const licenseCommand = {
         const display = licenses.slice(0, 10);
         const statusIcon = (s: string) => s === 'used' ? `${EMOJIS.INACTIVE} Used` : s === 'banned' ? `${EMOJIS.ERROR} Banned` : `${EMOJIS.ACTIVE} Unused`;
 
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.LICENSE} License List — ${appName}`)
-          .setColor('#5865F2')
-          .setDescription(
-            display.map((lic: any, i: number) => {
-              const durationStr = formatFriendlyDuration(lic.expiry_duration);
-              const expires = lic.expiration_date
-                ? new Date(lic.expiration_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                : 'Never';
-              const detailLine = lic.status === 'used' 
-                ? `› Expires: ${expires} | Used By: \`${lic.used_by_username || 'N/A'}\``
-                : `› Duration: **${durationStr}** | Note: ${lic.note || '—'}`;
-
-              return `**${i + 1}.** \`${lic.key || lic.license_key || 'N/A'}\`\n` +
-                `› Status: ${statusIcon(lic.status || 'unused')} | Level: ${lic.subscription_level || lic.level || 1}\n` +
-                detailLine;
-            }).join('\n\n')
-          )
-          .setFooter({ text: licenses.length > 10 ? `Showing 10 of ${licenses.length} — view all on dashboard` : 'DexterAuth Bot Integration' })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.LICENSE,
+              `License List — ${appName} (${licenses.length})`,
+              display.map((lic: any, i: number) => {
+                const durationStr = formatFriendlyDuration(lic.expiry_duration);
+                const detailLine = lic.status === 'used'
+                  ? `Expires: ${fmtDate(lic.expiration_date)} | By ${code(lic.used_by_username || 'N/A')}`
+                  : `Duration: **${durationStr}** | ${lic.note || '—'}`;
+                return `**${i + 1}.** ${code(lic.key || lic.license_key || 'N/A')}\n${statusIcon(lic.status || 'unused')} · Level ${lic.subscription_level || lic.level || 1}\n${detailLine}`;
+              }).join('\n\n'),
+              undefined,
+              licenses.length > 10 ? `Showing 10 of ${licenses.length} — rest on dashboard` : 'DexterAuth Bot Integration'
+            ),
+          ],
+        });
       }
 
       // ─── BAN ───────────────────────────────────────────────────────────────
@@ -211,16 +204,14 @@ export const licenseCommand = {
         await api.banLicense(match.id);
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.ERROR} License Banned`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: 'Key', value: `\`${key}\``, inline: false },
-                { name: 'Application', value: `\`${appName}\``, inline: true },
-                { name: 'Action', value: 'Banned — cannot be used for login', inline: true }
-              )
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.ERROR,
+              'License Banned',
+              'This key can no longer be used for login.',
+              [f('Key', code(key), false), f('Application', code(appName)), f('Action', 'Banned')],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -239,16 +230,14 @@ export const licenseCommand = {
         await api.deleteLicense(match.id);
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.TRASH} License Deleted`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: 'Key', value: `\`${key}\``, inline: false },
-                { name: 'Application', value: `\`${appName}\``, inline: true },
-                { name: 'Action', value: 'Permanently deleted', inline: true }
-              )
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.TRASH,
+              'License Deleted',
+              undefined,
+              [f('Key', code(key), false), f('Application', code(appName)), f('Action', 'Permanently deleted')],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 

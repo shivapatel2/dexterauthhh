@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, okPanel, errPanel, f, code, fmtDate } from '../utils/embeds';
 
 export const userCommand = {
   data: new SlashCommandBuilder()
@@ -85,6 +86,13 @@ export const userCommand = {
       return interaction.reply({ content: msg, ephemeral: true });
     }
 
+    const statusIcon = (s: string) => {
+      const sl = (s || '').toLowerCase();
+      if (sl === 'banned') return `${EMOJIS.ERROR} Banned`;
+      if (sl === 'paused') return `${EMOJIS.INACTIVE} Paused`;
+      return `${EMOJIS.ACTIVE} Active`;
+    };
+
     try {
       // ─── VIEW ──────────────────────────────────────────────────────────────
       if (subcommand === 'view') {
@@ -98,41 +106,25 @@ export const userCommand = {
         }
 
         const u = users[0]; // show first match
-        const expires = u.expiration_date
-          ? new Date(u.expiration_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : 'Never';
-        const created = u.created_at
-          ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : 'Unknown';
 
-        const statusIcon = (s: string) => {
-          const sl = (s || '').toLowerCase();
-          if (sl === 'banned') return `${EMOJIS.ERROR} Banned`;
-          if (sl === 'paused') return `${EMOJIS.INACTIVE} Paused`;
-          return `${EMOJIS.ACTIVE} Active`;
-        };
-
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.USER} User Profile: ${u.username}`)
-          .setColor(u.status?.toLowerCase() === 'banned' ? '#ef4444' : '#5865F2')
-          .addFields(
-            { name: `${EMOJIS.STATS} Status`, value: statusIcon(u.status), inline: true },
-            { name: `${EMOJIS.STATS} Level`, value: `Level ${u.subscription_level || 1}`, inline: true },
-            { name: `${EMOJIS.EMAIL} Email`, value: u.email || 'None', inline: true },
-            { name: `${EMOJIS.LOCK} HWID`, value: u.hwid ? `Locked \`${u.hwid.substring(0, 20)}...\`` : 'Not set / Unlocked', inline: false },
-            { name: `${EMOJIS.TIME} Expires`, value: expires, inline: true },
-            { name: `${EMOJIS.TIME} Created`, value: created, inline: true },
-            { name: `${EMOJIS.TAG} Notes`, value: u.notes || '—', inline: false },
-            { name: '🆔 User ID', value: `\`${u.id}\``, inline: false }
-          )
-          .setFooter({ text: `App: ${appName}` })
-          .setTimestamp();
-
-        if (users.length > 1) {
-          embed.addFields({ name: `${EMOJIS.INFO} Multiple matches`, value: `Found ${users.length} users matching "${query}". Showing the first result.`, inline: false });
-        }
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.USER,
+              `User Profile: ${u.username}`,
+              `${statusIcon(u.status)} · Level ${u.subscription_level || 1}${users.length > 1 ? ` · ${users.length} matches, showing first` : ''}`,
+              [
+                f(`${EMOJIS.EMAIL} Email`, u.email || 'None'),
+                f(`${EMOJIS.TIME} Expires`, fmtDate(u.expiration_date)),
+                f(`${EMOJIS.TIME} Created`, fmtDate(u.created_at)),
+                f(`${EMOJIS.LOCK} HWID`, u.hwid ? `Locked ${code(String(u.hwid).slice(0, 20) + '…')}` : 'Not set', false),
+                f(`${EMOJIS.TAG} Notes`, u.notes || '—', false),
+                f('🆔 ID', code(u.id), false),
+              ],
+              `App: ${appName}`
+            ),
+          ],
+        });
       }
 
       // ─── CREATE ────────────────────────────────────────────────────────────
@@ -160,25 +152,23 @@ export const userCommand = {
           notes
         });
 
-        const expires = expirationDate
-          ? new Date(expirationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : 'Never';
-
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SUCCESS} User Created Successfully`)
-              .setColor('#22c55e')
-              .addFields(
-                { name: `${EMOJIS.USER} Username`, value: user.username || username, inline: true },
-                { name: `${EMOJIS.STATS} Level`, value: `Level ${level}`, inline: true },
-                { name: `${EMOJIS.STATS} Status`, value: status.charAt(0).toUpperCase() + status.slice(1), inline: true },
-                { name: `${EMOJIS.EMAIL} Email`, value: email || 'None', inline: true },
-                { name: `${EMOJIS.TIME} Expires`, value: expires, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true }
-              )
-              .setTimestamp()
-          ]
+            okPanel(
+              EMOJIS.SUCCESS,
+              'User Created Successfully',
+              undefined,
+              [
+                f(`${EMOJIS.USER} Username`, code(user.username || username)),
+                f('Level', `Level ${level}`),
+                f('Status', status.charAt(0).toUpperCase() + status.slice(1)),
+                f(`${EMOJIS.EMAIL} Email`, email || 'None'),
+                f(`${EMOJIS.TIME} Expires`, expirationDate ? fmtDate(expirationDate) : 'Never'),
+                f(`${EMOJIS.TAG} App`, code(appName)),
+              ],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -213,24 +203,22 @@ export const userCommand = {
 
         await api.updateUser(match.id, payload);
 
-        const changedFields = Object.keys(payload).map(k => {
-          const labels: Record<string, string> = {
-            password: `${EMOJIS.LOCK} Password`, email: `${EMOJIS.EMAIL} Email`, status: `${EMOJIS.STATS} Status`,
-            subscription_level: `${EMOJIS.STATS} Level`, notes: `${EMOJIS.TAG} Notes`
-          };
-          return `${labels[k] || k}: \`${payload[k]}\``;
-        }).join('\n');
+        const labels: Record<string, string> = {
+          password: `${EMOJIS.LOCK} Password`, email: `${EMOJIS.EMAIL} Email`, status: `${EMOJIS.STATS} Status`,
+          subscription_level: `${EMOJIS.STATS} Level`, notes: `${EMOJIS.TAG} Notes`
+        };
+        const changedFields = Object.keys(payload).map(k => `${labels[k] || k}: ${code(payload[k])}`).join('\n');
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.USER} User Updated: ${username}`)
-              .setColor('#f59e0b')
-              .setDescription(`**Changes applied:**\n${changedFields}`)
-              .addFields({ name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true })
-              .setFooter({ text: status === 'banned' ? '⚠️ User banned — all active sessions have been killed.' : 'DexterAuth Bot Integration' })
-              .setTimestamp()
-          ]
+            okPanel(
+              EMOJIS.USER,
+              `User Updated: ${username}`,
+              `**Changes applied:**\n${changedFields}`,
+              [f(`${EMOJIS.TAG} App`, code(appName))],
+              status === 'banned' ? '⚠️ User banned — active sessions killed.' : `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -249,16 +237,14 @@ export const userCommand = {
         await api.resetUserHwid(match.id);
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle('🔓 HWID Reset')
-              .setColor('#22c55e')
-              .addFields(
-                { name: `${EMOJIS.USER} User`, value: match.username, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: 'Result', value: 'Hardware ID lock cleared. User can log in from a new device.', inline: false }
-              )
-              .setTimestamp()
-          ]
+            okPanel(
+              '🔓',
+              'HWID Reset',
+              'Hardware ID lock cleared — new device login allowed.',
+              [f(`${EMOJIS.USER} User`, code(match.username)), f(`${EMOJIS.TAG} App`, code(appName))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -277,16 +263,14 @@ export const userCommand = {
         await api.deleteUser(match.id);
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.TRASH} User Deleted`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: `${EMOJIS.USER} Username`, value: match.username, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: 'Result', value: 'Account permanently deleted.', inline: false }
-              )
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.TRASH,
+              'User Deleted',
+              'Account permanently deleted.',
+              [f(`${EMOJIS.USER} Username`, code(match.username)), f(`${EMOJIS.TAG} App`, code(appName))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 

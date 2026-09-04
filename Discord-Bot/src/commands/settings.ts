@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, okPanel, errPanel, f, code } from '../utils/embeds';
 
 export const settingsCommand = {
   data: new SlashCommandBuilder()
@@ -91,6 +92,8 @@ export const settingsCommand = {
       return interaction.reply({ content: msg, ephemeral: true });
     }
 
+    const yn = (v: any) => v ? `${EMOJIS.SUCCESS} On` : `${EMOJIS.ERROR} Off`;
+
     try {
       // ─── VIEW ──────────────────────────────────────────────────────────────
       if (subcommand === 'view') {
@@ -99,27 +102,24 @@ export const settingsCommand = {
         const app = await api.getAppById(selectedAppId);
         const hashes = await api.getHashes(selectedAppId).catch(() => []);
 
-        const yn = (v: any) => v ? `${EMOJIS.SUCCESS} Enabled` : `${EMOJIS.ERROR} Disabled`;
-        const statusLabel = app?.status ? `${EMOJIS.ACTIVE} Active` : `${EMOJIS.INACTIVE} Disabled`;
-        const webhookLabel = app?.discord_webhook ? `\`${app.discord_webhook.substring(0, 45)}...\`` : 'Not Configured';
-
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.SETTINGS} Settings — ${app?.name || appName}`)
-          .setColor('#5865F2')
-          .addFields(
-            { name: `${EMOJIS.STATS} Status`, value: statusLabel, inline: true },
-            { name: `${EMOJIS.TAG} Version`, value: `\`${app?.version || 'Not set'}\``, inline: true },
-            { name: `${EMOJIS.LOCK} Force HWID`, value: yn(app?.force_hwid), inline: true },
-            { name: `${EMOJIS.SHIELD} Hash Check`, value: yn(app?.hash_check), inline: true },
-            { name: `${EMOJIS.LOCK} Block Leaked Passwords`, value: yn(app?.block_leaked_passwords), inline: true },
-            { name: `${EMOJIS.USER} Min Username Length`, value: `${app?.min_username_length || 1} chars`, inline: true },
-            { name: '🔔 Discord Webhook', value: webhookLabel, inline: false },
-            { name: `${EMOJIS.SHIELD} Integrity Hashes`, value: `${hashes.length} registered`, inline: true }
-          )
-          .setFooter({ text: `App ID: ${selectedAppId}` })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.SETTINGS,
+              `Settings — ${app?.name || appName}`,
+              `Status: ${app?.status ? `${EMOJIS.ACTIVE} Active` : `${EMOJIS.INACTIVE} Disabled`} · Version ${code(app?.version || 'unset')}`,
+              [
+                f(`${EMOJIS.LOCK} Force HWID`, yn(app?.force_hwid)),
+                f('🔍 Hash Check', yn(app?.hash_check)),
+                f('🚫 Leaked PWDs', yn(app?.block_leaked_passwords)),
+                f(`${EMOJIS.USER} Min Username`, `${app?.min_username_length || 1} chars`),
+                f(`${EMOJIS.SHIELD} Hashes`, `${hashes.length} registered`),
+                f('🔔 Webhook', app?.discord_webhook ? code(String(app.discord_webhook).slice(0, 40) + '…') : 'Not configured', false),
+              ],
+              `App ID: ${selectedAppId}`
+            ),
+          ],
+        });
       }
 
       // ─── WEBHOOK ───────────────────────────────────────────────────────────
@@ -140,17 +140,14 @@ export const settingsCommand = {
 
           return interaction.editReply({
             embeds: [
-              new EmbedBuilder()
-                .setTitle('🔔 Discord Webhook Configured')
-                .setColor('#22c55e')
-                .setDescription(`Application logs for **${appName}** will now post automatically to your Discord channel.`)
-                .addFields(
-                  { name: 'Webhook URL', value: `\`${urlInput.substring(0, 50)}...\``, inline: false },
-                  { name: 'Logged Events', value: 'Key Generations, Key Deletions, Bans, User Resets & App Updates', inline: false }
-                )
-                .setFooter({ text: 'Use /settings webhook action:Test to send a test message.' })
-                .setTimestamp()
-            ]
+              okPanel(
+                '🔔',
+                'Discord Webhook Configured',
+                `Logs for **${appName}** now post to your channel (generations, deletions, bans, resets, updates).`,
+                [f('URL', code(urlInput.slice(0, 50) + '…'), false)],
+                'Use /settings webhook action:Test to send a test message.'
+              ),
+            ],
           });
         }
 
@@ -198,12 +195,12 @@ export const settingsCommand = {
 
         await api.updateAppSettings(selectedAppId, payload);
 
+        const labels: Record<string, string> = {
+          status: `${EMOJIS.STATS} Status`, hash_check: '🔍 Hash Check',
+          force_hwid: `${EMOJIS.LOCK} Force HWID`, block_leaked_passwords: '🚫 Leaked Passwords',
+          min_username_length: '📏 Min Username',
+        };
         const changed = Object.entries(payload).map(([k, v]) => {
-          const labels: Record<string, string> = {
-            status: `${EMOJIS.STATS} Status`, hash_check: '🔍 Hash Check',
-            force_hwid: `${EMOJIS.LOCK} Force HWID`, block_leaked_passwords: '🚫 Block Leaked Passwords',
-            min_username_length: '📏 Min Username Length'
-          };
           let display = String(v);
           if (k === 'status') display = v === 1 ? 'Active' : 'Disabled';
           else if (k === 'min_username_length') display = `${v} chars`;
@@ -212,13 +209,7 @@ export const settingsCommand = {
         }).join('\n');
 
         return interaction.editReply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SETTINGS} Settings Updated — ${appName}`)
-              .setColor('#22c55e')
-              .setDescription(changed)
-              .setTimestamp()
-          ]
+          embeds: [okPanel(EMOJIS.SETTINGS, `Settings Updated — ${appName}`, changed, undefined, `App: ${appName}`)],
         });
       }
 
@@ -238,16 +229,14 @@ export const settingsCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle('🔢 Version Updated')
-              .setColor('#22c55e')
-              .addFields(
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: '🆕 New Version', value: `\`${newVersion}\``, inline: true }
-              )
-              .setFooter({ text: 'Users will be required to update to this version on next login.' })
-              .setTimestamp()
-          ]
+            okPanel(
+              '🔢',
+              'Version Updated',
+              'Users must update on next login.',
+              [f(`${EMOJIS.TAG} App`, code(appName)), f('🆕 Version', code(newVersion))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -260,17 +249,14 @@ export const settingsCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SUCCESS} Integrity Hash Added`)
-              .setColor('#22c55e')
-              .addFields(
-                { name: '🔐 Hash', value: `\`${hashValue}\``, inline: false },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: '🆔 Hash ID', value: `\`${result?.id || 'N/A'}\``, inline: true }
-              )
-              .setFooter({ text: 'Use /settings hash-list to see all registered hashes.' })
-              .setTimestamp()
-          ]
+            okPanel(
+              EMOJIS.SUCCESS,
+              'Integrity Hash Added',
+              undefined,
+              [f('🔐 Hash', code(hashValue), false), f(`${EMOJIS.TAG} App`, code(appName)), f('🆔 ID', code(result?.id || 'N/A'))],
+              'Use /settings hash-list to see all registered hashes.'
+            ),
+          ],
         });
       }
 
@@ -284,18 +270,17 @@ export const settingsCommand = {
           return interaction.editReply({ content: `${EMOJIS.INFO} No integrity hashes registered for **${appName}**.` });
         }
 
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.SHIELD} Integrity Hashes — ${appName}`)
-          .setColor('#5865F2')
-          .setDescription(
-            hashes.map((h: any, i: number) =>
-              `**${i + 1}.** \`${h.hash_value || h.hash}\`\n› ID: \`${h.id}\``
-            ).join('\n\n')
-          )
-          .setFooter({ text: `Total: ${hashes.length} hash(es) | Use ID with /settings hash-delete` })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.SHIELD,
+              `Integrity Hashes — ${appName} (${hashes.length})`,
+              hashes.map((h: any, i: number) => `**${i + 1}.** ${code(h.hash_value || h.hash)}\nID ${code(h.id)}`).join('\n\n'),
+              undefined,
+              'Use an ID with /settings hash-delete'
+            ),
+          ],
+        });
       }
 
       // ─── HASH-DELETE ───────────────────────────────────────────────────────
@@ -307,15 +292,14 @@ export const settingsCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.TRASH} Hash Removed`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: '🆔 Hash ID', value: `\`${hashId}\``, inline: true },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true }
-              )
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.TRASH,
+              'Hash Removed',
+              undefined,
+              [f('🆔 ID', code(hashId)), f(`${EMOJIS.TAG} App`, code(appName))],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -330,16 +314,14 @@ export const settingsCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.TRASH} All Hashes Reset`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: `${EMOJIS.TRASH} Hashes Removed`, value: `${count}`, inline: true }
-              )
-              .setFooter({ text: 'All integrity hash checks disabled until new hashes are added.' })
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.TRASH,
+              'All Hashes Reset',
+              'Hash checks disabled until new hashes are added.',
+              [f(`${EMOJIS.TAG} App`, code(appName)), f('Removed', `${count}`)],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 

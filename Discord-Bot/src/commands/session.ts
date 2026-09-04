@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 import { ApiService } from '../services/api';
 import { db } from '../utils/db';
 import { EMOJIS } from '../utils/emojis';
+import { infoPanel, okPanel, errPanel, f, code, fmtDateTime } from '../utils/embeds';
 
 export const sessionCommand = {
   data: new SlashCommandBuilder()
@@ -52,26 +53,19 @@ export const sessionCommand = {
           return interaction.editReply({ content: `${EMOJIS.INFO} No active sessions found for **${appName}**.` });
         }
 
-        const display = sessions.slice(0, 10);
-
-        const embed = new EmbedBuilder()
-          .setTitle(`${EMOJIS.ACTIVE} Active Sessions — ${appName}`)
-          .setColor('#5865F2')
-          .setDescription(
-            display.map((s: any, i: number) => {
-              const started = s.created_at
-                ? new Date(s.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                : 'Unknown';
-              return `**#${i + 1}** | ${EMOJIS.USER} **${s.username || s.user?.username || 'Unknown'}**\n` +
-                `› IP: \`${s.ip_address || s.ip || '—'}\` | Device: \`${s.hwid ? s.hwid.substring(0, 12) + '...' : 'N/A'}\`\n` +
-                `› Started: ${started}\n` +
-                `› ID: \`${s.id}\``;
-            }).join('\n\n')
-          )
-          .setFooter({ text: sessions.length > 10 ? `Showing 10 of ${sessions.length} sessions. Use session ID from above to kill one.` : `Total: ${sessions.length} session(s)` })
-          .setTimestamp();
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({
+          embeds: [
+            infoPanel(
+              EMOJIS.ACTIVE,
+              `Active Sessions — ${appName} (${sessions.length})`,
+              sessions.slice(0, 10).map((s: any, i: number) =>
+                `**#${i + 1}** ${code(s.username || s.user?.username || 'Unknown')} · \`${s.ip_address || s.ip || '—'}\` · ${s.hwid ? code(String(s.hwid).slice(0, 12) + '…') : 'N/A'}\nStarted ${fmtDateTime(s.created_at)} · ID ${code(s.id)}`
+              ).join('\n\n'),
+              undefined,
+              sessions.length > 10 ? `Showing 10 of ${sessions.length}` : `Total: ${sessions.length} session(s)`
+            ),
+          ],
+        });
       }
 
       // ─── KILL ──────────────────────────────────────────────────────────────
@@ -84,17 +78,14 @@ export const sessionCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SESSIONS} Session Terminated`)
-              .setColor('#f59e0b')
-              .addFields(
-                { name: '🆔 Session ID', value: `\`${sessionId}\``, inline: false },
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: 'Sessions Killed', value: '1', inline: true }
-              )
-              .setFooter({ text: 'The user has been logged out.' })
-              .setTimestamp()
-          ]
+            okPanel(
+              EMOJIS.SESSIONS,
+              'Session Terminated',
+              'The user has been logged out.',
+              [f('🆔 Session', code(sessionId), false), f(`${EMOJIS.TAG} App`, code(appName)), f('Killed', '1')],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
@@ -118,17 +109,14 @@ export const sessionCommand = {
 
         return interaction.editReply({
           embeds: [
-            new EmbedBuilder()
-              .setTitle(`${EMOJIS.SESSIONS} All Sessions Terminated`)
-              .setColor('#ef4444')
-              .addFields(
-                { name: `${EMOJIS.TAG} App`, value: `\`${appName}\``, inline: true },
-                { name: `${EMOJIS.SUCCESS} Sessions Killed`, value: `${killed}`, inline: true },
-                { name: failed > 0 ? `${EMOJIS.ERROR} Failed` : `${EMOJIS.STATS} Total`, value: failed > 0 ? `${failed}` : `${sessions.length}`, inline: true }
-              )
-              .setFooter({ text: 'All users have been logged out from this application.' })
-              .setTimestamp()
-          ]
+            errPanel(
+              EMOJIS.SESSIONS,
+              'All Sessions Terminated',
+              'All users have been logged out from this application.',
+              [f(`${EMOJIS.TAG} App`, code(appName)), f(`${EMOJIS.SUCCESS} Killed`, `${killed}`), f(failed > 0 ? `${EMOJIS.ERROR} Failed` : `${EMOJIS.STATS} Total`, failed > 0 ? `${failed}` : `${sessions.length}`)],
+              `App: ${appName}`
+            ),
+          ],
         });
       }
 
